@@ -1,0 +1,239 @@
+.writing-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.writing-page h1 {
+  color: var(--secondary);
+  margin: 0 0 1.5rem;
+  font-size: 1.8rem;
+}
+
+/* Story list */
+.story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.story-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.2rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.story-card:hover {
+  border-color: var(--secondary);
+}
+
+.story-card-info h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.story-card-info p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.story-card-words {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.new-story-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #55efc4, #00b894);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s;
+  width: 100%;
+}
+
+.new-story-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Editor view */
+.editor-container {
+  position: relative;
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.editor-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.word-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.spell-status {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.editor-area {
+  min-height: 300px;
+  padding: 1.2rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.editor-area:focus {
+  border-color: var(--secondary);
+}
+
+.editor-area:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-light);
+}
+
+/* Prompt banner */
+.prompt-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  background: linear-gradient(135deg, #dfe6e9, #b2bec3);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+[data-theme="dark"] .prompt-banner {
+  background: linear-gradient(135deg, #2d3436, #636e72);
+}
+
+.prompt-banner .prompt-text {
+  flex: 1;
+  font-style: italic;
+}
+
+.prompt-banner button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+/* Suggestion popup */
+.suggestion-popup {
+  position: fixed;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: 1rem;
+  padding: 0.8rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  max-width: 280px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.suggestion-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.suggestion-btn {
+  padding: 0.3rem 0.7rem;
+  background: var(--primary-light);
+  color: white;
+  border: none;
+  border-radius: 1rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.suggestion-btn:hover {
+  background: var(--primary);
+}
+
+/* Save indicator */
+.save-indicator {
+  font-size: 0.85rem;
+  color: var(--secondary);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.save-indicator.visible {
+  opacity: 1;
+}
+
+/* Delete button */
+.delete-story-btn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.3rem;
+}
+
+.delete-story-btn:hover {
+  background: rgba(225, 112, 85, 0.1);
+}
+
+@media (max-width: 600px) {
+  .editor-area {
+    min-height: 200px;
+    font-size: 1rem;
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "kidwriter",
+  "version": "1.0.0",
+  "description": "Application éducative pour apprendre à taper et écrire des histoires",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/nspell": "^2.1.6",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.3"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "dictionary-fr": "^3.0.0",
+    "nspell": "^2.1.5"
+  }
+}
