@@ -1,7 +1,7 @@
 import { navigate } from '../../router';
 import { getState, updateState } from '../../shared/storage';
 import { addPoints, recordWritingActivity, recordCorrection, awardZeroFault, updateCleanStreak } from '../../shared/gamification';
-import { showNotification } from '../../shared/animations';
+import { showNotification, showGammeCelebration } from '../../shared/animations';
 import { playAchievement } from '../../shared/audio';
 import { renderMascot, getMascotSpeech } from '../../shared/mascot';
 import { t } from '../../shared/i18n';
@@ -186,7 +186,11 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     const streakResult = updateCleanStreak(wordCount, errors.length);
     for (const ach of streakResult.newAchievements) {
       playAchievement();
-      showNotification(ach.name, ach.icon);
+      if (ach.id.startsWith('clean-')) {
+        showGammeCelebration(ach.name, ach.icon);
+      } else {
+        showNotification(ach.name, ach.icon);
+      }
     }
 
     if (errors.length === 0) {
