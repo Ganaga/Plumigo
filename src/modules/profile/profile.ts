@@ -3,6 +3,7 @@ import { getState, updateState } from '../../shared/storage';
 import { LEVELS, ACHIEVEMENTS } from '../../shared/gamification';
 import { renderMascot, renderMascotById, MASCOTS, type MascotId } from '../../shared/mascot';
 import { t } from '../../shared/i18n';
+import { updateFavicon } from '../../shared/favicon';
 import { renderParentZone } from './parent-zone';
 import './profile.css';
 
@@ -103,6 +104,7 @@ export function renderProfile(container: HTMLElement): void {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-mascot') as MascotId;
       updateState((s) => { s.profile.mascot = id; });
+      updateFavicon();
 
       // Update active state visually
       container.querySelectorAll('.mascot-pick-card').forEach((b) => b.classList.remove('mascot-pick-active'));
