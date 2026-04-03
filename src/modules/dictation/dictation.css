@@ -113,6 +113,12 @@
   color: var(--text-light);
 }
 
+.word-typing {
+  color: var(--primary);
+  background: rgba(108, 92, 231, 0.08);
+  font-weight: 600;
+}
+
 .word-flash {
   color: var(--text);
   font-weight: 500;

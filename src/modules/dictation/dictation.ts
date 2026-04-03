@@ -132,7 +132,7 @@ function renderExercise(container: HTMLElement): void {
     // Show comparison results
     displayHtml = session.results
       .map((r) => {
-        const cls = r.status === 'correct' ? 'word-correct' : r.status === 'incorrect' ? 'word-incorrect' : 'word-pending';
+        const cls = r.status === 'correct' ? 'word-correct' : r.status === 'incorrect' ? 'word-incorrect' : r.status === 'typing' ? 'word-typing' : 'word-pending';
         return `<span class="dictation-word ${cls}">${r.expected}</span>`;
       })
       .join(' ');
@@ -201,7 +201,7 @@ function renderExercise(container: HTMLElement): void {
       const display = document.getElementById('sentence-display')!;
       display.innerHTML = session.results
         .map((r) => {
-          const cls = r.status === 'correct' ? 'word-correct' : r.status === 'incorrect' ? 'word-incorrect' : 'word-pending';
+          const cls = r.status === 'correct' ? 'word-correct' : r.status === 'incorrect' ? 'word-incorrect' : r.status === 'typing' ? 'word-typing' : 'word-pending';
           return `<span class="dictation-word ${cls}">${r.expected}</span>`;
         })
         .join(' ');
