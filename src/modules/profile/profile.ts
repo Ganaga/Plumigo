@@ -1,7 +1,7 @@
 import { navigate } from '../../router';
-import { getState } from '../../shared/storage';
+import { getState, updateState } from '../../shared/storage';
 import { LEVELS, ACHIEVEMENTS } from '../../shared/gamification';
-import { renderMascot } from '../../shared/mascot';
+import { renderMascot, renderMascotById, MASCOTS, type MascotId } from '../../shared/mascot';
 import { t } from '../../shared/i18n';
 import { renderParentZone } from './parent-zone';
 import './profile.css';
@@ -11,6 +11,7 @@ export function renderProfile(container: HTMLElement): void {
   const level = LEVELS[state.gamification.level - 1] ?? LEVELS[0]!;
   const nextLevel = LEVELS[state.gamification.level] ?? null;
   const unlockedIds = new Set(state.gamification.achievements);
+  const currentMascot = (state.profile.mascot || 'owl') as MascotId;
 
   const totalStories = state.writing.stories.length;
   const totalWords = state.writing.stories.reduce((sum, s) => sum + s.wordCount, 0);
@@ -38,6 +39,18 @@ export function renderProfile(container: HTMLElement): void {
           <div class="progress-bar">
             <div class="progress-fill" style="width:${progressPct}%"></div>
           </div>
+        </div>
+      </div>
+
+      <div class="mascot-picker-section">
+        <h2>🎨 Ma mascotte</h2>
+        <div class="mascot-picker-grid">
+          ${MASCOTS.map((m) => `
+            <button class="mascot-pick-card ${m.id === currentMascot ? 'mascot-pick-active' : ''}" data-mascot="${m.id}">
+              ${renderMascotById(m.id, 'happy', 64)}
+              <span class="mascot-pick-name">${m.name}</span>
+            </button>
+          `).join('')}
         </div>
       </div>
 
@@ -84,6 +97,26 @@ export function renderProfile(container: HTMLElement): void {
   `;
 
   document.getElementById('btn-back-profile')?.addEventListener('click', () => navigate(''));
+
+  // Mascot picker
+  container.querySelectorAll('.mascot-pick-card').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-mascot') as MascotId;
+      updateState((s) => { s.profile.mascot = id; });
+
+      // Update active state visually
+      container.querySelectorAll('.mascot-pick-card').forEach((b) => b.classList.remove('mascot-pick-active'));
+      btn.classList.add('mascot-pick-active');
+
+      // Re-render the header mascot
+      const levelDiv = container.querySelector('.profile-level .mascot');
+      if (levelDiv) {
+        const temp = document.createElement('div');
+        temp.innerHTML = renderMascotById(id, 'happy', 80);
+        levelDiv.replaceWith(temp.firstElementChild!);
+      }
+    });
+  });
 
   renderParentZone(document.getElementById('parent-zone')!);
 }

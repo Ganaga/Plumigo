@@ -8,6 +8,7 @@ function defaultState(): KidWriterState {
       name: '',
       createdAt: new Date().toISOString(),
       theme: 'light',
+      mascot: 'owl',
     },
     writing: {
       stories: [],

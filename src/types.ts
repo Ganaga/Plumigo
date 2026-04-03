@@ -16,6 +16,7 @@ export interface KidWriterState {
     name: string;
     createdAt: string;
     theme: 'light' | 'dark';
+    mascot: string;
   };
   writing: {
     stories: Story[];
