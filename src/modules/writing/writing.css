@@ -20,21 +20,47 @@
 
 .story-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.2rem;
   background: var(--surface);
   border: 2px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
   transition: border-color 0.2s;
-  width: 100%;
+  overflow: hidden;
 }
 
 .story-card:hover {
   border-color: var(--secondary);
+}
+
+.story-card-open {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  padding: 1rem 1.2rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  min-width: 0;
+}
+
+.story-card-rename {
+  background: none;
+  border: none;
+  border-left: 2px solid var(--border);
+  padding: 1rem 0.8rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.story-card-rename:hover {
+  background: rgba(108, 92, 231, 0.08);
 }
 
 .story-card-info h3 {

@@ -49,13 +49,16 @@ function renderStoryList(container: HTMLElement): void {
       <div class="story-list">
         ${stories.length === 0 ? '<p style="color:var(--text-muted);text-align:center;margin-top:2rem;">Pas encore d\'histoire. Écris ta première !</p>' : ''}
         ${stories.map((s) => `
-          <button class="story-card" data-story-id="${s.id}">
-            <div class="story-card-info">
-              <h3>${s.title || 'Sans titre'}</h3>
-              <p>${formatDate(s.updatedAt)}</p>
-            </div>
-            <span class="story-card-words">${s.wordCount} ${t.writing.words}</span>
-          </button>
+          <div class="story-card">
+            <button class="story-card-open" data-story-id="${s.id}">
+              <div class="story-card-info">
+                <h3>${s.title || 'Sans titre'}</h3>
+                <p>${formatDate(s.updatedAt)}</p>
+              </div>
+              <span class="story-card-words">${s.wordCount} ${t.writing.words}</span>
+            </button>
+            <button class="story-card-rename" data-rename-id="${s.id}" title="Renommer">✏️</button>
+          </div>
         `).join('')}
       </div>
     </div>
@@ -81,10 +84,29 @@ function renderStoryList(container: HTMLElement): void {
     navigate(`writing/${newStory.id}`);
   });
 
-  container.querySelectorAll('.story-card').forEach((btn) => {
+  container.querySelectorAll('.story-card-open').forEach((btn) => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-story-id')!;
       navigate(`writing/${id}`);
+    });
+  });
+
+  container.querySelectorAll('.story-card-rename').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-rename-id')!;
+      const state = getState();
+      const story = state.writing.stories.find((s) => s.id === id);
+      if (!story) return;
+
+      const newTitle = prompt('Nouveau titre :', story.title || '');
+      if (newTitle !== null) {
+        updateState((s) => {
+          const st = s.writing.stories.find((x) => x.id === id);
+          if (st) st.title = newTitle.trim() || 'Sans titre';
+        });
+        renderStoryList(container);
+      }
     });
   });
 }
