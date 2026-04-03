@@ -3,7 +3,7 @@ import { getState, updateState } from '../../shared/storage';
 import { addPoints, recordWritingActivity, recordCorrection, awardZeroFault, updateCleanStreak } from '../../shared/gamification';
 import { showNotification } from '../../shared/animations';
 import { playAchievement } from '../../shared/audio';
-import { renderMascot } from '../../shared/mascot';
+import { renderMascot, getMascotSpeech } from '../../shared/mascot';
 import { t } from '../../shared/i18n';
 import { isTtsEnabled, toggleTts, hasTtsSupport } from '../../shared/tts';
 import {
@@ -16,7 +16,6 @@ import {
   cleanupEditor,
 } from './editor';
 import type { GrammarError } from './grammar-checker';
-import { getRandomPrompt } from './prompts';
 import type { Story } from '../../types';
 import './writing.css';
 
@@ -97,7 +96,6 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     return () => {};
   }
 
-  const prompt = getRandomPrompt();
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let lastWordCount = story.wordCount;
   let ttsEnabled = isTtsEnabled();
@@ -109,10 +107,9 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     <div class="writing-page fade-in">
       <button class="back-btn" id="btn-back-editor">← ${t.writing.back}</button>
 
-      <div class="prompt-banner">
-        <span>💡</span>
-        <span class="prompt-text" id="prompt-text">${prompt}</span>
-        <button id="btn-new-prompt" title="Nouvelle idée">🔄</button>
+      <div class="mascot-feedback" id="mascot-feedback">
+        ${renderMascot('happy', 48)}
+        <span class="mascot-feedback-text">${getMascotSpeech('happy')}</span>
       </div>
 
       <div class="editor-container">
@@ -151,15 +148,13 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
   // Trigger initial check after a short delay
   setTimeout(() => triggerCheck(editorEl), 500);
 
-  // Update error count display
-  setOnErrorsUpdated((errors) => {
-    const spelling = errors.filter((e) => !e.isGrammar).length;
-    const grammar = errors.filter((e) => e.isGrammar).length;
+  const feedbackEl = document.getElementById('mascot-feedback')!;
 
+  function updateFeedback(errors: GrammarError[]): void {
     const text = getEditorText(editorEl);
     const wordCount = text.trim().split(/\s+/).filter((w) => w.length > 0).length;
 
-    // Update clean streak (words without errors)
+    // Update clean streak
     const streakResult = updateCleanStreak(wordCount, errors.length);
     for (const ach of streakResult.newAchievements) {
       playAchievement();
@@ -167,20 +162,59 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     }
 
     if (errors.length === 0) {
+      // Encouragement mode
       if (text.trim().length > 10) {
         errorCountEl.innerHTML = `<span class="no-errors">✅ ${t.writing.noErrors}</span>`;
         awardZeroFault();
         addPoints(10);
+        const encouragements = [
+          'Zéro faute, bravo ! Continue comme ça !',
+          'Parfait ! Ton texte est impeccable !',
+          'Aucune erreur, tu es un champion !',
+          'Super travail ! Pas une seule faute !',
+          'Excellent, ton écriture est parfaite !',
+        ];
+        const msg = encouragements[Math.floor(Math.random() * encouragements.length)]!;
+        feedbackEl.innerHTML = `${renderMascot('celebrating', 48)}<span class="mascot-feedback-text feedback-ok">${msg}</span>`;
+      } else if (text.trim().length === 0) {
+        feedbackEl.innerHTML = `${renderMascot('happy', 48)}<span class="mascot-feedback-text">${getMascotSpeech('happy')}</span>`;
+        errorCountEl.innerHTML = '';
       } else {
+        feedbackEl.innerHTML = `${renderMascot('encouraging', 48)}<span class="mascot-feedback-text">Continue d'écrire, tu te débrouilles bien !</span>`;
         errorCountEl.innerHTML = '';
       }
     } else {
+      // Show first error as mascot feedback
+      const first = errors[0]!;
+      const errorWord = text.slice(first.offset, first.offset + first.length);
+      let msg: string;
+
+      if (first.isGrammar) {
+        msg = first.shortMessage
+          ? `${first.shortMessage} : « ${errorWord} » — ${first.message}`
+          : `Attention : « ${errorWord} » — ${first.message}`;
+      } else {
+        if (first.replacements.length > 0) {
+          msg = `Attention, « ${errorWord} » semble mal écrit ! Essaie « ${first.replacements[0]} »`;
+        } else {
+          msg = `Attention, vérifie le mot « ${errorWord} »`;
+        }
+      }
+
+      const pose = first.isGrammar ? 'thinking' : 'encouraging';
+      feedbackEl.innerHTML = `${renderMascot(pose, 48)}<span class="mascot-feedback-text feedback-error">${msg}</span>`;
+
+      // Error count badges
+      const spelling = errors.filter((e) => !e.isGrammar).length;
+      const grammar = errors.filter((e) => e.isGrammar).length;
       const parts: string[] = [];
       if (spelling > 0) parts.push(`<span class="error-badge error-badge-spell">${spelling} ortho</span>`);
       if (grammar > 0) parts.push(`<span class="error-badge error-badge-grammar">${grammar} gram</span>`);
       errorCountEl.innerHTML = parts.join(' ');
     }
-  });
+  }
+
+  setOnErrorsUpdated(updateFeedback);
 
   // Suggestion popup on error click
   setOnErrorClick((error: GrammarError, rect: DOMRect) => {
@@ -298,12 +332,6 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
 
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(save, 2000);
-  });
-
-  // New prompt
-  document.getElementById('btn-new-prompt')?.addEventListener('click', () => {
-    const newPrompt = getRandomPrompt();
-    document.getElementById('prompt-text')!.textContent = newPrompt;
   });
 
   // Delete story

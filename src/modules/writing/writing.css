@@ -192,33 +192,43 @@
   cursor: pointer;
 }
 
-/* Prompt banner */
-.prompt-banner {
+/* Mascot feedback zone */
+.mascot-feedback {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.8rem 1rem;
-  background: linear-gradient(135deg, #dfe6e9, #b2bec3);
+  padding: 0.7rem 1rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 1rem;
-  font-size: 0.95rem;
+  min-height: 64px;
+  transition: border-color 0.3s, background 0.3s;
 }
 
-[data-theme="dark"] .prompt-banner {
-  background: linear-gradient(135deg, #2d3436, #636e72);
+.mascot-feedback:has(.feedback-ok) {
+  border-color: var(--secondary);
+  background: rgba(0, 184, 148, 0.05);
 }
 
-.prompt-banner .prompt-text {
+.mascot-feedback:has(.feedback-error) {
+  border-color: var(--warning);
+  background: rgba(255, 165, 2, 0.05);
+}
+
+.mascot-feedback-text {
   flex: 1;
-  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
-.prompt-banner button {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0.2rem;
+.feedback-ok {
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+.feedback-error {
+  color: var(--text);
 }
 
 /* Suggestion popup */
