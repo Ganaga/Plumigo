@@ -82,9 +82,29 @@
   color: var(--text-muted);
 }
 
+.dashboard-daily {
+  margin: 1rem 0;
+  padding: 0.6rem 1rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.dashboard-daily-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.dashboard-daily .progress-fill.complete {
+  background: linear-gradient(90deg, var(--accent), #f39c12);
+  box-shadow: 0 0 8px rgba(253, 203, 110, 0.5);
+}
+
 .dashboard-cards {
   display: flex;
   justify-content: center;
+  gap: 1rem;
   margin: 1.5rem 0;
 }
 
@@ -126,14 +146,23 @@
   opacity: 0.8;
 }
 
-.card-writing {
-  min-width: 280px;
+.card-writing, .card-dictation {
+  min-width: 220px;
   background: linear-gradient(135deg, #55efc4, #00b894);
   color: white;
 }
 
 .card-writing:hover {
   border-color: #009874;
+}
+
+.card-dictation {
+  background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+  color: white;
+}
+
+.card-dictation:hover {
+  border-color: #4a3dc7;
 }
 
 .profile-link {

@@ -23,7 +23,8 @@ export interface AppState {
     currentStoryId: string | null;
     totalCorrections: number;
     grammarCorrections: number;
-    bestCleanStreak: number; // best streak of consecutive error-free words
+    bestCleanStreak: number;
+    sentencesValidated: number;
   };
   gamification: {
     totalPoints: number;
@@ -32,6 +33,12 @@ export interface AppState {
     dailyStreak: number;
     lastActiveDate: string;
     dailyActivity: Record<string, DailyActivity>;
+    dailyWordGoal: number;
+  };
+  dictation: {
+    sentencesCompleted: number;
+    perfectScores: number;
+    currentDifficulty: 'easy' | 'medium' | 'hard';
   };
 }
 
@@ -48,5 +55,5 @@ export interface Level {
   minPoints: number;
 }
 
-export type Route = '' | 'writing' | 'profile';
+export type Route = '' | 'writing' | 'profile' | 'dictation';
 export type RouteHandler = (container: HTMLElement, params?: string) => void | (() => void);

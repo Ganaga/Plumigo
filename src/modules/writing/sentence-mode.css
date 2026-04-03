@@ -1,0 +1,102 @@
+.sentence-mode {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.sentence-mode-header h2 {
+  color: var(--secondary);
+  margin: 0 0 0.25rem;
+  font-size: 1.4rem;
+}
+
+.sentence-mode-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+}
+
+.sentence-completed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.sentence-completed {
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border: 2px solid var(--secondary);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  animation: sentenceLock 0.4s ease-out;
+}
+
+@keyframes sentenceLock {
+  0% { transform: translateY(10px); opacity: 0; border-color: var(--accent); }
+  50% { border-color: var(--accent); }
+  100% { transform: translateY(0); opacity: 1; border-color: var(--secondary); }
+}
+
+.sentence-empty {
+  color: var(--text-light);
+  text-align: center;
+  font-size: 0.9rem;
+  margin: 1rem 0;
+}
+
+.sentence-active-area {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.sentence-input {
+  min-height: 60px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  outline: none;
+  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.2s;
+}
+
+.sentence-input:focus {
+  border-color: var(--secondary);
+}
+
+.sentence-input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-light);
+}
+
+.sentence-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 165, 2, 0.08);
+  border: 2px solid var(--warning);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.sentence-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.sentence-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

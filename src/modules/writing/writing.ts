@@ -1,8 +1,8 @@
 import { navigate } from '../../router';
 import { getState, updateState } from '../../shared/storage';
-import { addPoints, recordWritingActivity, recordCorrection, awardZeroFault, updateCleanStreak } from '../../shared/gamification';
-import { showNotification, showGammeCelebration } from '../../shared/animations';
-import { playAchievement } from '../../shared/audio';
+import { addPoints, recordWritingActivity, recordCorrection, awardZeroFault, updateCleanStreak, getDailyWordsWritten, getDailyWordGoal } from '../../shared/gamification';
+import { showNotification, showGammeCelebration, fireConfetti } from '../../shared/animations';
+import { playAchievement, playTimerEnd, playKeySound } from '../../shared/audio';
 import { renderMascot, getMascotSpeech } from '../../shared/mascot';
 import { t } from '../../shared/i18n';
 import { isTtsEnabled, toggleTts, hasTtsSupport } from '../../shared/tts';
@@ -16,8 +16,12 @@ import {
   cleanupEditor,
   undo,
   redo,
+  isOneAtATimeMode,
+  setOneAtATimeMode,
 } from './editor';
 import type { GrammarError } from './grammar-checker';
+import { renderSentenceMode } from './sentence-mode';
+import { startPomodoro, formatTime, type PomodoroController } from '../../shared/pomodoro';
 import type { Story } from '../../types';
 import './writing.css';
 
@@ -124,6 +128,27 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
   let lastWordCount = story.wordCount;
   let ttsEnabled = isTtsEnabled();
   let zeroFaultAwarded = false;
+  let goalCelebratedToday = false;
+  let pomodoroCtrl: PomodoroController | null = null;
+
+  function updateDailyProgress(): void {
+    const written = getDailyWordsWritten();
+    const goal = getDailyWordGoal();
+    const pct = Math.min(100, Math.round((written / goal) * 100));
+    const wordsEl = document.getElementById('daily-words');
+    const fillEl = document.getElementById('daily-progress-fill');
+    if (wordsEl) wordsEl.textContent = String(written);
+    if (fillEl) {
+      fillEl.style.width = pct + '%';
+      fillEl.classList.toggle('complete', pct >= 100);
+    }
+    if (pct >= 100 && !goalCelebratedToday) {
+      goalCelebratedToday = true;
+      fireConfetti();
+      playAchievement();
+      showNotification('Objectif du jour atteint !', '🎯');
+    }
+  }
 
   const ttsIcon = ttsEnabled ? '🔊' : '🔇';
   const ttsTitle = ttsEnabled ? t.writing.ttsOn : t.writing.ttsOff;
@@ -137,6 +162,11 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
         <span class="mascot-feedback-text">${getMascotSpeech('happy')}</span>
       </div>
 
+      <div class="daily-progress" id="daily-progress">
+        <span class="daily-progress-label">Objectif : <strong id="daily-words">0</strong> / <span id="daily-goal">${getDailyWordGoal()}</span> mots</span>
+        <div class="daily-progress-bar"><div class="daily-progress-fill" id="daily-progress-fill" style="width:0%"></div></div>
+      </div>
+
       <div class="editor-container">
         <div class="editor-toolbar">
           <div class="editor-toolbar-left">
@@ -144,8 +174,12 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
             <span class="error-count" id="error-count"></span>
           </div>
           <div class="editor-toolbar-right">
+            <button class="toolbar-btn" id="btn-sentence-mode" title="Mode phrase par phrase">📝</button>
+            <button class="toolbar-btn active" id="btn-one-at-a-time" title="Une erreur à la fois">1️⃣</button>
             <button class="toolbar-btn" id="btn-undo" title="Annuler (Ctrl+Z)">↩️</button>
             <button class="toolbar-btn" id="btn-redo" title="Rétablir (Ctrl+Y)">↪️</button>
+            <button class="toolbar-btn" id="btn-pomodoro" title="Minuteur 5 min">⏱️</button>
+            <span class="pomodoro-timer" id="pomodoro-display" style="display:none"></span>
             <button class="toolbar-btn" id="btn-print" title="Imprimer">🖨️</button>
             ${hasTtsSupport() ? `<button class="tts-toggle" id="btn-tts" title="${ttsTitle}">${ttsIcon}</button>` : ''}
             <span class="save-indicator" id="save-indicator">${t.writing.saved}</span>
@@ -175,6 +209,7 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
 
   // Trigger initial check after a short delay
   setTimeout(() => triggerCheck(editorEl), 500);
+  updateDailyProgress();
 
   const feedbackEl = document.getElementById('mascot-feedback')!;
 
@@ -240,13 +275,20 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       const pose = 'unhappy' as const;
       feedbackEl.innerHTML = `${renderMascot(pose, 48)}<span class="mascot-feedback-text feedback-error">${msg}</span>`;
 
-      // Error count badges
-      const spelling = errors.filter((e) => !e.isGrammar).length;
-      const grammar = errors.filter((e) => e.isGrammar).length;
-      const parts: string[] = [];
-      if (spelling > 0) parts.push(`<span class="error-badge error-badge-spell">${spelling} ortho</span>`);
-      if (grammar > 0) parts.push(`<span class="error-badge error-badge-grammar">${grammar} gram</span>`);
-      errorCountEl.innerHTML = parts.join(' ');
+      // Error count display
+      if (isOneAtATimeMode()) {
+        // Find which error number the first visible one is
+        const sortedByOffset = [...errors].sort((a, b) => a.offset - b.offset);
+        const visibleIdx = errors.indexOf(sortedByOffset[0]!);
+        errorCountEl.innerHTML = `<span class="error-badge error-badge-progress">Erreur ${visibleIdx + 1} sur ${errors.length}</span>`;
+      } else {
+        const spelling = errors.filter((e) => !e.isGrammar).length;
+        const grammar = errors.filter((e) => e.isGrammar).length;
+        const parts: string[] = [];
+        if (spelling > 0) parts.push(`<span class="error-badge error-badge-spell">${spelling} ortho</span>`);
+        if (grammar > 0) parts.push(`<span class="error-badge error-badge-grammar">${grammar} gram</span>`);
+        errorCountEl.innerHTML = parts.join(' ');
+      }
     }
   }
 
@@ -311,6 +353,101 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       }
     };
     setTimeout(() => document.addEventListener('click', closePopup), 100);
+  });
+
+  // One-at-a-time toggle
+  document.getElementById('btn-one-at-a-time')?.addEventListener('click', () => {
+    const btn = document.getElementById('btn-one-at-a-time')!;
+    const newMode = !isOneAtATimeMode();
+    setOneAtATimeMode(newMode);
+    btn.classList.toggle('active', newMode);
+    triggerCheck(editorEl);
+  });
+
+  // Sentence mode toggle
+  document.getElementById('btn-sentence-mode')?.addEventListener('click', () => {
+    save();
+    cleanupEditor();
+    const currentContent = getEditorText(editorEl);
+
+    // Replace the page content with sentence mode
+    renderSentenceMode(
+      container,
+      storyId,
+      currentContent,
+      (fullText) => {
+        updateState((s) => {
+          const idx = s.writing.stories.findIndex((st) => st.id === storyId);
+          if (idx >= 0) {
+            s.writing.stories[idx]!.content = fullText;
+            s.writing.stories[idx]!.wordCount = fullText.trim().split(/\s+/).filter((w: string) => w.length > 0).length;
+            s.writing.stories[idx]!.updatedAt = new Date().toISOString();
+          }
+        });
+      },
+      () => navigate(`writing/${storyId}`),
+    );
+  });
+
+  // Pomodoro timer
+  document.getElementById('btn-pomodoro')?.addEventListener('click', () => {
+    const btn = document.getElementById('btn-pomodoro')!;
+    const display = document.getElementById('pomodoro-display')!;
+
+    if (pomodoroCtrl) {
+      pomodoroCtrl.stop();
+      pomodoroCtrl = null;
+      display.style.display = 'none';
+      btn.classList.remove('active');
+      // Remove break overlay if present
+      document.getElementById('pomodoro-break-overlay')?.remove();
+      editorEl.contentEditable = 'true';
+      return;
+    }
+
+    btn.classList.add('active');
+    display.style.display = 'inline';
+
+    pomodoroCtrl = startPomodoro({ writingMinutes: 5, breakMinutes: 1 }, {
+      onTick: (remaining, phase) => {
+        display.textContent = formatTime(remaining);
+        display.className = `pomodoro-timer pomodoro-${phase}`;
+      },
+      onPhaseChange: (phase) => {
+        if (phase === 'break') {
+          playTimerEnd();
+          editorEl.contentEditable = 'false';
+          // Show break overlay
+          const overlay = document.createElement('div');
+          overlay.id = 'pomodoro-break-overlay';
+          overlay.className = 'pomodoro-break-overlay';
+          overlay.innerHTML = `
+            <div class="pomodoro-break-content">
+              ${renderMascot('ecstatic', 120)}
+              <h2>Pause !</h2>
+              <p>Repose-toi, tu as bien travaillé !</p>
+            </div>
+          `;
+          document.body.appendChild(overlay);
+          requestAnimationFrame(() => overlay.classList.add('visible'));
+        } else {
+          playKeySound(true);
+          editorEl.contentEditable = 'true';
+          document.getElementById('pomodoro-break-overlay')?.remove();
+          editorEl.focus();
+        }
+      },
+      onComplete: () => {
+        pomodoroCtrl = null;
+        display.style.display = 'none';
+        btn.classList.remove('active');
+        document.getElementById('pomodoro-break-overlay')?.remove();
+        editorEl.contentEditable = 'true';
+        playAchievement();
+        showNotification('Session terminée, bravo !', '⏱️');
+        editorEl.focus();
+      },
+    });
   });
 
   // Undo / Redo / Print
@@ -391,6 +528,7 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       lastWordCount = words;
     }
 
+    updateDailyProgress();
     saveIndicatorEl.classList.add('visible');
     setTimeout(() => saveIndicatorEl.classList.remove('visible'), 1500);
   }
@@ -425,6 +563,8 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     save();
     cleanupEditor();
     if (saveTimer) clearTimeout(saveTimer);
+    if (pomodoroCtrl) { pomodoroCtrl.stop(); pomodoroCtrl = null; }
+    document.getElementById('pomodoro-break-overlay')?.remove();
   };
 }
 

@@ -144,6 +144,38 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '📚',
     check: (s) => s.writing.stories.length >= 10,
   },
+  {
+    id: 'daily-goal',
+    name: 'Objectif du jour',
+    description: 'Atteins ton objectif quotidien de mots',
+    icon: '🎯',
+    check: (s) => {
+      const today = new Date().toISOString().slice(0, 10);
+      const activity = s.gamification.dailyActivity[today];
+      return (activity?.wordsWritten ?? 0) >= s.gamification.dailyWordGoal;
+    },
+  },
+  {
+    id: 'sentence-10',
+    name: 'Dix phrases parfaites',
+    description: 'Valide 10 phrases sans faute',
+    icon: '💯',
+    check: (s) => s.writing.sentencesValidated >= 10,
+  },
+  {
+    id: 'dictation-5',
+    name: 'Bon élève',
+    description: 'Réussis 5 dictées',
+    icon: '🎧',
+    check: (s) => s.dictation.sentencesCompleted >= 5,
+  },
+  {
+    id: 'dictation-perfect-3',
+    name: 'Oreille parfaite',
+    description: '3 dictées parfaites d\'affilée',
+    icon: '👂',
+    check: (s) => s.dictation.perfectScores >= 3,
+  },
 ];
 
 function computeLevel(points: number): number {
@@ -264,4 +296,15 @@ export function recordWritingActivity(words: number): void {
     }
     state.gamification.dailyActivity[today]!.wordsWritten += words;
   });
+}
+
+export function getDailyWordsWritten(): number {
+  const state = getState();
+  const today = new Date().toISOString().slice(0, 10);
+  return state.gamification.dailyActivity[today]?.wordsWritten ?? 0;
+}
+
+export function getDailyWordGoal(): number {
+  const state = getState();
+  return state.gamification.dailyWordGoal;
 }

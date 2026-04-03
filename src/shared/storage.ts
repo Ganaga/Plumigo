@@ -16,6 +16,7 @@ function defaultState(): AppState {
       totalCorrections: 0,
       grammarCorrections: 0,
       bestCleanStreak: 0,
+      sentencesValidated: 0,
     },
     gamification: {
       totalPoints: 0,
@@ -24,6 +25,12 @@ function defaultState(): AppState {
       dailyStreak: 0,
       lastActiveDate: '',
       dailyActivity: {},
+      dailyWordGoal: 20,
+    },
+    dictation: {
+      sentencesCompleted: 0,
+      perfectScores: 0,
+      currentDifficulty: 'easy',
     },
   };
 }
@@ -32,7 +39,14 @@ export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return { ...defaultState(), ...JSON.parse(raw) };
+      const saved = JSON.parse(raw);
+      const defaults = defaultState();
+      return {
+        profile: { ...defaults.profile, ...saved.profile },
+        writing: { ...defaults.writing, ...saved.writing },
+        gamification: { ...defaults.gamification, ...saved.gamification },
+        dictation: { ...defaults.dictation, ...saved.dictation },
+      };
     }
   } catch {
     // corrupted data, reset

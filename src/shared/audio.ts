@@ -56,6 +56,28 @@ export function playLevelUp(): void {
   }
 }
 
+export function playTimerEnd(): void {
+  try {
+    const ctx = getAudioContext();
+    const notes = [659, 523]; // E5, C5 — descending
+
+    notes.forEach((freq, i) => {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.frequency.value = freq;
+      oscillator.type = 'sine';
+      gain.gain.value = 0.15;
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.3 + 0.4);
+      oscillator.start(ctx.currentTime + i * 0.3);
+      oscillator.stop(ctx.currentTime + i * 0.3 + 0.4);
+    });
+  } catch {
+    // Audio not available
+  }
+}
+
 export function playAchievement(): void {
   try {
     const ctx = getAudioContext();

@@ -4,6 +4,15 @@ import { speakSpellingError, speakGrammarError, isTtsEnabled } from '../../share
 let currentErrors: GrammarError[] = [];
 let onErrorClick: ((error: GrammarError, rect: DOMRect) => void) | null = null;
 let onErrorsUpdated: ((errors: GrammarError[]) => void) | null = null;
+let oneAtATimeMode = true;
+
+export function setOneAtATimeMode(enabled: boolean): void {
+  oneAtATimeMode = enabled;
+}
+
+export function isOneAtATimeMode(): boolean {
+  return oneAtATimeMode;
+}
 
 // Undo/redo history
 let undoStack: string[] = [];
@@ -35,15 +44,16 @@ function buildDecoratedHtml(text: string, errors: GrammarError[]): string {
     .map((e, i) => ({ ...e, originalIdx: i }))
     .sort((a, b) => a.offset - b.offset);
 
+  // In one-at-a-time mode, only show the first error
+  const visible = oneAtATimeMode ? sorted.slice(0, 1) : sorted;
+
   let result = '';
   let lastEnd = 0;
 
-  for (const err of sorted) {
-    // Add text before this error
+  for (const err of visible) {
     if (err.offset > lastEnd) {
       result += escapeHtml(text.slice(lastEnd, err.offset));
     }
-    // Add the error span
     const match = text.slice(err.offset, err.offset + err.length);
     const cls = err.isGrammar ? 'grammar-error' : 'spell-error';
     result += `<span class="${cls}" data-error-idx="${err.originalIdx}">${escapeHtml(match)}</span>`;

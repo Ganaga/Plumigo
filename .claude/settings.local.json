@@ -20,7 +20,8 @@
       "WebFetch(domain:grammalecte.net)",
       "Bash(npm uninstall:*)",
       "Bash(node:*)",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "Bash(xargs wc:*)"
     ]
   }
 }

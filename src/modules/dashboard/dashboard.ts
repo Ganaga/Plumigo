@@ -1,6 +1,6 @@
 import { navigate } from '../../router';
 import { getState } from '../../shared/storage';
-import { LEVELS, updateDailyStreak } from '../../shared/gamification';
+import { LEVELS, updateDailyStreak, getDailyWordsWritten, getDailyWordGoal } from '../../shared/gamification';
 import { renderMascot, getMascotSpeech } from '../../shared/mascot';
 import { t } from '../../shared/i18n';
 import './dashboard.css';
@@ -10,6 +10,9 @@ export function renderDashboard(container: HTMLElement): void {
   const state = getState();
   const level = LEVELS[state.gamification.level - 1] ?? LEVELS[0]!;
   const totalStories = state.writing.stories.length;
+  const dailyWords = getDailyWordsWritten();
+  const dailyGoal = getDailyWordGoal();
+  const dailyPct = Math.min(100, Math.round((dailyWords / dailyGoal) * 100));
 
   container.innerHTML = `
     <div class="dashboard">
@@ -41,11 +44,21 @@ export function renderDashboard(container: HTMLElement): void {
         </div>
       </div>
 
+      <div class="dashboard-daily">
+        <span class="dashboard-daily-label">🎯 Objectif du jour : ${dailyWords} / ${dailyGoal} mots</span>
+        <div class="progress-bar"><div class="progress-fill ${dailyPct >= 100 ? 'complete' : ''}" style="width:${dailyPct}%"></div></div>
+      </div>
+
       <div class="dashboard-cards">
         <button class="card card-writing" data-route="writing">
           <div class="card-icon">✍️</div>
           <h2>${t.dashboard.writing}</h2>
           <p>${t.dashboard.writingDesc}</p>
+        </button>
+        <button class="card card-dictation" data-route="dictation">
+          <div class="card-icon">🎧</div>
+          <h2>Dictée</h2>
+          <p>Écoute et écris la phrase</p>
         </button>
       </div>
 

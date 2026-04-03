@@ -88,6 +88,37 @@ export function checkGrammar(
   }, 800);
 }
 
+export async function checkGrammarImmediate(text: string): Promise<GrammarError[]> {
+  const trimmed = text.trim();
+  if (trimmed.length < 2) return [];
+
+  const body = new URLSearchParams({
+    text: trimmed,
+    language: 'fr',
+    disabledRules: 'WHITESPACE_RULE',
+  });
+
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+
+  if (!response.ok) throw new Error(`LanguageTool API error: ${response.status}`);
+
+  const data: LTResponse = await response.json();
+
+  return data.matches.map((match) => ({
+    offset: match.offset,
+    length: match.length,
+    message: match.message,
+    shortMessage: match.shortMessage || match.message,
+    replacements: match.replacements.slice(0, 5).map((r) => r.value),
+    isGrammar: !SPELLING_CATEGORIES.has(match.rule.category.id),
+    ruleId: match.rule.id,
+  }));
+}
+
 export function cancelCheck(): void {
   if (debounceTimer) {
     clearTimeout(debounceTimer);

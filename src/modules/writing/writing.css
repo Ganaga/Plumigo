@@ -102,6 +102,44 @@
   transform: translateY(-2px);
 }
 
+/* Daily word goal progress */
+.daily-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+}
+
+.daily-progress-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.daily-progress-bar {
+  flex: 1;
+  height: 10px;
+  background: var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.daily-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--secondary-light), var(--secondary));
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+
+.daily-progress-fill.complete {
+  background: linear-gradient(90deg, var(--accent), #f39c12);
+  box-shadow: 0 0 8px rgba(253, 203, 110, 0.5);
+}
+
 /* Editor view */
 .editor-container {
   position: relative;
@@ -156,6 +194,11 @@
   color: var(--primary);
 }
 
+.error-badge-progress {
+  background: rgba(108, 92, 231, 0.12);
+  color: var(--primary);
+}
+
 .no-errors {
   font-size: 0.8rem;
   color: var(--secondary);
@@ -185,6 +228,11 @@
 
 .toolbar-btn:active {
   transform: scale(0.92);
+}
+
+.toolbar-btn.active {
+  border-color: var(--primary);
+  background: rgba(108, 92, 231, 0.15);
 }
 
 /* TTS toggle button */
@@ -401,6 +449,68 @@
 
 .delete-story-btn:hover {
   background: rgba(225, 112, 85, 0.1);
+}
+
+/* Pomodoro timer */
+.pomodoro-timer {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+}
+
+.pomodoro-writing {
+  background: rgba(0, 184, 148, 0.12);
+  color: var(--secondary);
+}
+
+.pomodoro-break {
+  background: rgba(108, 92, 231, 0.12);
+  color: var(--primary);
+  animation: pulse-soft 1s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.pomodoro-break-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(108, 92, 231, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1500;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.pomodoro-break-overlay.visible {
+  opacity: 1;
+}
+
+.pomodoro-break-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: white;
+  text-align: center;
+}
+
+.pomodoro-break-content h2 {
+  font-size: 2.5rem;
+  margin: 0;
+  animation: mascotBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.pomodoro-break-content p {
+  font-size: 1.2rem;
+  margin: 0;
+  opacity: 0.9;
 }
 
 @media (max-width: 600px) {
