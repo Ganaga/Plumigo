@@ -5,6 +5,12 @@ let currentErrors: GrammarError[] = [];
 let onErrorClick: ((error: GrammarError, rect: DOMRect) => void) | null = null;
 let onErrorsUpdated: ((errors: GrammarError[]) => void) | null = null;
 
+// Undo/redo history
+let undoStack: string[] = [];
+let redoStack: string[] = [];
+let lastSnapshot = '';
+let snapshotTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function setOnErrorClick(cb: (error: GrammarError, rect: DOMRect) => void): void {
   onErrorClick = cb;
 }
@@ -132,12 +138,76 @@ function runGrammarCheck(editorEl: HTMLElement): void {
   });
 }
 
+function pushSnapshot(text: string): void {
+  if (text === lastSnapshot) return;
+  undoStack.push(lastSnapshot);
+  lastSnapshot = text;
+  redoStack = [];
+  // Keep history manageable
+  if (undoStack.length > 100) undoStack.shift();
+}
+
+function scheduleSnapshot(editorEl: HTMLElement): void {
+  if (snapshotTimer) clearTimeout(snapshotTimer);
+  snapshotTimer = setTimeout(() => {
+    pushSnapshot(getPlainText(editorEl));
+  }, 500);
+}
+
+export function undo(editorEl: HTMLElement): void {
+  // Save current state to redo
+  const current = getPlainText(editorEl);
+  if (undoStack.length === 0) return;
+  redoStack.push(current);
+  const prev = undoStack.pop()!;
+  lastSnapshot = prev;
+  editorEl.innerText = prev;
+  applyDecorations(editorEl);
+  runGrammarCheck(editorEl);
+}
+
+export function redo(editorEl: HTMLElement): void {
+  if (redoStack.length === 0) return;
+  undoStack.push(getPlainText(editorEl));
+  const next = redoStack.pop()!;
+  lastSnapshot = next;
+  editorEl.innerText = next;
+  applyDecorations(editorEl);
+  runGrammarCheck(editorEl);
+}
+
+export function canUndo(): boolean {
+  return undoStack.length > 0;
+}
+
+export function canRedo(): boolean {
+  return redoStack.length > 0;
+}
+
 export function initEditor(editorEl: HTMLElement): void {
   editorEl.setAttribute('contenteditable', 'true');
   editorEl.setAttribute('spellcheck', 'false');
 
+  // Init undo history with initial content
+  lastSnapshot = getPlainText(editorEl);
+  undoStack = [];
+  redoStack = [];
+
   editorEl.addEventListener('input', () => {
+    scheduleSnapshot(editorEl);
     runGrammarCheck(editorEl);
+  });
+
+  // Keyboard shortcuts for undo/redo
+  editorEl.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo(editorEl);
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      e.preventDefault();
+      redo(editorEl);
+    }
   });
 }
 
@@ -155,6 +225,7 @@ export function setEditorText(editorEl: HTMLElement, text: string): void {
 }
 
 export function replaceError(editorEl: HTMLElement, error: GrammarError, replacement: string): void {
+  pushSnapshot(getPlainText(editorEl));
   const text = getPlainText(editorEl);
   const before = text.slice(0, error.offset);
   const after = text.slice(error.offset + error.length);
@@ -185,4 +256,8 @@ export function cleanupEditor(): void {
   currentErrors = [];
   onErrorClick = null;
   onErrorsUpdated = null;
+  undoStack = [];
+  redoStack = [];
+  lastSnapshot = '';
+  if (snapshotTimer) clearTimeout(snapshotTimer);
 }

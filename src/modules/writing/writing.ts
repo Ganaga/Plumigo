@@ -14,6 +14,8 @@ import {
   replaceError,
   triggerCheck,
   cleanupEditor,
+  undo,
+  redo,
 } from './editor';
 import type { GrammarError } from './grammar-checker';
 import type { Story } from '../../types';
@@ -119,6 +121,9 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
             <span class="error-count" id="error-count"></span>
           </div>
           <div class="editor-toolbar-right">
+            <button class="toolbar-btn" id="btn-undo" title="Annuler (Ctrl+Z)">↩️</button>
+            <button class="toolbar-btn" id="btn-redo" title="Rétablir (Ctrl+Y)">↪️</button>
+            <button class="toolbar-btn" id="btn-print" title="Imprimer">🖨️</button>
             ${hasTtsSupport() ? `<button class="tts-toggle" id="btn-tts" title="${ttsTitle}">${ttsIcon}</button>` : ''}
             <span class="save-indicator" id="save-indicator">${t.writing.saved}</span>
             <button class="delete-story-btn" id="btn-delete">🗑️ ${t.writing.delete}</button>
@@ -275,6 +280,41 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       }
     };
     setTimeout(() => document.addEventListener('click', closePopup), 100);
+  });
+
+  // Undo / Redo / Print
+  document.getElementById('btn-undo')?.addEventListener('click', () => {
+    undo(editorEl);
+    const text = getEditorText(editorEl);
+    wordCountEl.textContent = `${countWords(text)} ${t.writing.words}`;
+  });
+
+  document.getElementById('btn-redo')?.addEventListener('click', () => {
+    redo(editorEl);
+    const text = getEditorText(editorEl);
+    wordCountEl.textContent = `${countWords(text)} ${t.writing.words}`;
+  });
+
+  document.getElementById('btn-print')?.addEventListener('click', () => {
+    const text = getEditorText(editorEl);
+    const title = getState().writing.stories.find((s) => s.id === storyId)?.title || 'Mon histoire';
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"/>
+<title>${title}</title>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; max-width: 700px; margin: 2rem auto; padding: 0 1rem; font-size: 14pt; line-height: 1.8; color: #2d3436; }
+  h1 { font-size: 18pt; color: #6C5CE7; border-bottom: 2px solid #6C5CE7; padding-bottom: 0.5rem; }
+  .footer { margin-top: 2rem; font-size: 10pt; color: #999; text-align: center; }
+</style></head><body>
+<h1>${title}</h1>
+<div>${text.split('\n').map((l: string) => `<p>${l || '&nbsp;'}</p>`).join('')}</div>
+<div class="footer">Écrit avec Plumigo</div>
+</body></html>`);
+      printWindow.document.close();
+      printWindow.print();
+    }
   });
 
   // TTS toggle

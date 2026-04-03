@@ -136,6 +136,31 @@
   font-weight: 600;
 }
 
+/* Toolbar buttons (undo, redo, print) */
+.toolbar-btn {
+  background: none;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+  padding: 0;
+}
+
+.toolbar-btn:hover {
+  border-color: var(--primary);
+  background: rgba(108, 92, 231, 0.08);
+}
+
+.toolbar-btn:active {
+  transform: scale(0.92);
+}
+
 /* TTS toggle button */
 .tts-toggle {
   background: none;
