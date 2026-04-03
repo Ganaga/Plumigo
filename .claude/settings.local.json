@@ -18,7 +18,8 @@
       "Bash(gh run:*)",
       "Bash(grep -E \"\\\\.\\(json|ts|js\\)$\")",
       "WebFetch(domain:grammalecte.net)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(node:*)"
     ]
   }
 }
