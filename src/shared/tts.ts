@@ -2,10 +2,55 @@ const TTS_KEY = 'plumigo_tts_enabled';
 
 let frenchVoice: SpeechSynthesisVoice | null = null;
 
+// Keywords that indicate higher-quality voices (neural/natural)
+const PREFERRED_KEYWORDS = [
+  'natural', 'neural', 'wavenet', 'enhanced', 'premium',
+  'denise', 'henri', 'vivienne', 'thomas', 'lea',
+];
+
+// Lower quality voice indicators
+const AVOID_KEYWORDS = ['compact', 'espeak', 'mbrola'];
+
+function scoreVoice(voice: SpeechSynthesisVoice): number {
+  const name = voice.name.toLowerCase();
+  let score = 0;
+
+  // Prefer fr-FR over other French variants
+  if (voice.lang === 'fr-FR') score += 10;
+  else if (voice.lang.startsWith('fr')) score += 5;
+
+  // Prefer voices with quality keywords
+  for (const kw of PREFERRED_KEYWORDS) {
+    if (name.includes(kw)) { score += 20; break; }
+  }
+
+  // Penalize low-quality voices
+  for (const kw of AVOID_KEYWORDS) {
+    if (name.includes(kw)) { score -= 30; break; }
+  }
+
+  // Prefer non-local voices (Google/Microsoft online voices are usually better)
+  if (!voice.localService) score += 5;
+
+  // Prefer female voices (generally clearer for children)
+  if (name.includes('female') || name.includes('femme')) score += 2;
+
+  return score;
+}
+
 function findFrenchVoice(): void {
   if (typeof speechSynthesis === 'undefined') return;
   const voices = speechSynthesis.getVoices();
-  frenchVoice = voices.find((v) => v.lang.startsWith('fr')) ?? null;
+  const french = voices.filter((v) => v.lang.startsWith('fr'));
+
+  if (french.length === 0) {
+    frenchVoice = null;
+    return;
+  }
+
+  // Pick the best-scoring French voice
+  french.sort((a, b) => scoreVoice(b) - scoreVoice(a));
+  frenchVoice = french[0]!;
 }
 
 // Voices load asynchronously on most browsers
@@ -31,11 +76,8 @@ export function speak(text: string): void {
   if (!isTtsEnabled()) return;
   if (typeof speechSynthesis === 'undefined') return;
 
-  // Refresh voices if not found yet
   if (!frenchVoice) findFrenchVoice();
 
-  // Chrome bug: cancel() then immediate speak() can fail.
-  // Use a small delay to work around it.
   speechSynthesis.cancel();
 
   setTimeout(() => {
@@ -44,8 +86,9 @@ export function speak(text: string): void {
     if (frenchVoice) {
       utterance.voice = frenchVoice;
     }
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
+    // Slightly slower and natural-sounding settings
+    utterance.rate = 0.92;
+    utterance.pitch = 1.05;
     utterance.volume = 1;
 
     speechSynthesis.speak(utterance);
