@@ -203,6 +203,56 @@
   color: var(--text-muted);
 }
 
+/* Comparison view */
+.dictation-comparison {
+  width: 100%;
+  max-width: 500px;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  text-align: left;
+}
+
+.dictation-compare-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.dictation-compare-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 55px;
+  flex-shrink: 0;
+}
+
+.dictation-compare-text {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.compare-word {
+  display: inline;
+}
+
+.compare-highlight {
+  color: var(--secondary);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.compare-error {
+  color: var(--danger);
+  font-weight: 700;
+  text-decoration: line-through;
+}
+
 .dictation-score-errors {
   display: block;
   font-size: 0.9rem;

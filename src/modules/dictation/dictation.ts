@@ -158,6 +158,23 @@ function renderExercise(container: HTMLElement): void {
     ? `<span class="dictation-score-errors">${resultErrors} faute${resultErrors > 1 ? 's' : ''}</span>`
     : '';
 
+  // Build comparison view: correct version vs typed version
+  const comparisonHtml = done && session.results.length > 0 ? `
+    <div class="dictation-comparison">
+      <div class="dictation-compare-row">
+        <span class="dictation-compare-label">Correct :</span>
+        <span class="dictation-compare-text">${session.results.map((r) =>
+          `<span class="compare-word ${r.status === 'incorrect' ? 'compare-highlight' : ''}">${r.expected}</span>`
+        ).join(' ')}</span>
+      </div>
+      <div class="dictation-compare-row">
+        <span class="dictation-compare-label">Toi :</span>
+        <span class="dictation-compare-text">${session.results.map((r) =>
+          `<span class="compare-word ${r.status === 'incorrect' ? 'compare-error' : ''}">${r.typed || '…'}</span>`
+        ).join(' ')}</span>
+      </div>
+    </div>` : '';
+
   const resultHtml = `
     <div class="dictation-result">
       ${renderMascot(resultPose, 80)}
@@ -166,6 +183,7 @@ function renderExercise(container: HTMLElement): void {
         <span class="dictation-score-label">${resultLabel}</span>
         ${errorsLabel}
       </div>
+      ${comparisonHtml}
       <button class="btn btn-primary" id="btn-next">Suivant →</button>
     </div>`;
 
