@@ -17,9 +17,6 @@ import {
   cleanupEditor,
   undo,
   redo,
-  isOneAtATimeMode,
-  setOneAtATimeMode,
-  getClosestErrorIndex,
   getCursorPos,
 } from './editor';
 import type { GrammarError } from './grammar-checker';
@@ -175,7 +172,6 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
             <span class="error-count" id="error-count"></span>
           </div>
           <div class="editor-toolbar-right">
-            <button class="toolbar-btn active" id="btn-one-at-a-time" title="Une erreur à la fois">1️⃣</button>
             <button class="toolbar-btn" id="btn-undo" title="Annuler (Ctrl+Z)">↩️</button>
             <button class="toolbar-btn" id="btn-redo" title="Rétablir (Ctrl+Y)">↪️</button>
             <button class="toolbar-btn" id="btn-pomodoro" title="Minuteur 5 min">⏱️</button>
@@ -276,17 +272,12 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       }
     } else {
       zeroFaultAwarded = false;
-      if (isOneAtATimeMode()) {
-        const closestIdx = getClosestErrorIndex();
-        errorCountEl.innerHTML = `<span class="error-badge error-badge-progress">Erreur ${closestIdx + 1} sur ${errors.length}</span>`;
-      } else {
-        const spelling = errors.filter((e) => !e.isGrammar).length;
-        const grammar = errors.filter((e) => e.isGrammar).length;
-        const parts: string[] = [];
-        if (spelling > 0) parts.push(`<span class="error-badge error-badge-spell">${spelling} ortho</span>`);
-        if (grammar > 0) parts.push(`<span class="error-badge error-badge-grammar">${grammar} gram</span>`);
-        errorCountEl.innerHTML = parts.join(' ');
-      }
+      const spelling = errors.filter((e) => !e.isGrammar).length;
+      const grammar = errors.filter((e) => e.isGrammar).length;
+      const parts: string[] = [];
+      if (spelling > 0) parts.push(`<span class="error-badge error-badge-spell">${spelling} ortho</span>`);
+      if (grammar > 0) parts.push(`<span class="error-badge error-badge-grammar">${grammar} gram</span>`);
+      errorCountEl.innerHTML = parts.join(' ');
     }
   });
 
@@ -349,15 +340,6 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       }
     };
     setTimeout(() => document.addEventListener('click', closePopup), 100);
-  });
-
-  // One-at-a-time toggle
-  document.getElementById('btn-one-at-a-time')?.addEventListener('click', () => {
-    const btn = document.getElementById('btn-one-at-a-time')!;
-    const newMode = !isOneAtATimeMode();
-    setOneAtATimeMode(newMode);
-    btn.classList.toggle('active', newMode);
-    triggerCheck(editorEl);
   });
 
   // Pomodoro timer

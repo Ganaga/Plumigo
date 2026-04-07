@@ -4,16 +4,7 @@ import { speakSpellingError, speakGrammarError, isTtsEnabled } from '../../share
 let currentErrors: GrammarError[] = [];
 let onErrorClick: ((error: GrammarError, rect: DOMRect) => void) | null = null;
 let onErrorsUpdated: ((errors: GrammarError[]) => void) | null = null;
-let oneAtATimeMode = true;
 let lastKnownCursorPos = 0;
-
-export function setOneAtATimeMode(enabled: boolean): void {
-  oneAtATimeMode = enabled;
-}
-
-export function isOneAtATimeMode(): boolean {
-  return oneAtATimeMode;
-}
 
 // Undo/redo history
 let undoStack: string[] = [];
