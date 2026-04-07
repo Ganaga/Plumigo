@@ -46,6 +46,7 @@ function defaultState(name: string = ''): AppState {
       perfectScores: 0,
       currentDifficulty: 'easy',
       showSentence: 'flash',
+      ignoreAccents: false,
     },
   };
 }

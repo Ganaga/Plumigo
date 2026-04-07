@@ -6,7 +6,11 @@ export interface ComparisonResult {
   status: WordStatus;
 }
 
-export function compareWords(expected: string, typed: string): ComparisonResult[] {
+function stripAccents(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ç/gi, 'c').replace(/œ/gi, 'oe').replace(/æ/gi, 'ae');
+}
+
+export function compareWords(expected: string, typed: string, ignoreAccents = false): ComparisonResult[] {
   const expectedWords = expected.trim().split(/\s+/);
   const typedWords = typed.trim().split(/\s+/).filter((w) => w.length > 0);
   const typedEndsWithSpace = typed.endsWith(' ');
@@ -38,7 +42,9 @@ export function compareWords(expected: string, typed: string): ComparisonResult[
       // Typed is long enough — judge it now
     }
 
-    const match = tw.toLowerCase() === exp.toLowerCase();
+    const a = ignoreAccents ? stripAccents(tw.toLowerCase()) : tw.toLowerCase();
+    const b = ignoreAccents ? stripAccents(exp.toLowerCase()) : exp.toLowerCase();
+    const match = a === b;
     return { expected: exp, typed: tw, status: match ? 'correct' as const : 'incorrect' as const };
   });
 }

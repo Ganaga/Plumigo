@@ -40,6 +40,7 @@ export interface AppState {
     perfectScores: number;
     currentDifficulty: 'easy' | 'medium' | 'hard';
     showSentence: 'flash' | 'hidden';
+    ignoreAccents: boolean;
   };
 }
 

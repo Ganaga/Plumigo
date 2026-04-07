@@ -131,6 +131,11 @@ export class PlumigoParentZone extends LitElement {
     updateState((s) => { s.profile.useBuiltInKeyboard = checked; });
   }
 
+  private onAccentsToggle(e: Event) {
+    const checked = (e.target as HTMLInputElement).checked;
+    updateState((s) => { s.dictation.ignoreAccents = checked; });
+  }
+
   private addProfile() {
     const input = this.renderRoot.querySelector('#new-profile-name') as HTMLInputElement;
     const name = input?.value.trim();
@@ -205,6 +210,11 @@ export class PlumigoParentZone extends LitElement {
             <span>Clavier intégré AZERTY</span>
             <span class="toggle-hint">Désactive la correction automatique du clavier Android</span>
             <input type="checkbox" ?checked=${state.profile.useBuiltInKeyboard} @change=${this.onKeyboardToggle} />
+          </label>
+          <label class="toggle-row">
+            <span>Dictée : ignorer les accents et ç</span>
+            <span class="toggle-hint">Les erreurs d'accents (é/è/ê, à, ù, ô, ç) ne sont pas comptées en dictée</span>
+            <input type="checkbox" ?checked=${state.dictation.ignoreAccents} @change=${this.onAccentsToggle} />
           </label>
         </div>
 

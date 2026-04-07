@@ -215,7 +215,8 @@ function renderExercise(container: HTMLElement): void {
     input.addEventListener('input', () => {
       if (!session) return;
       const typed = input.value;
-      session.results = compareWords(session.sentence, typed);
+      const ignoreAccents = getState().dictation?.ignoreAccents ?? false;
+      session.results = compareWords(session.sentence, typed, ignoreAccents);
 
       // Update word display with results
       const display = document.getElementById('sentence-display')!;
