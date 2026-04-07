@@ -23,6 +23,7 @@ function defaultState(name: string = ''): AppState {
       createdAt: new Date().toISOString(),
       theme: 'light',
       mascot: 'owl',
+      useBuiltInKeyboard: false,
     },
     writing: {
       stories: [],

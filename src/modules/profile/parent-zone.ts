@@ -1,4 +1,4 @@
-import { getState, getProfiles, getActiveProfileId, createProfile, deleteProfile } from '../../shared/storage';
+import { getState, updateState, getProfiles, getActiveProfileId, createProfile, deleteProfile } from '../../shared/storage';
 import { t } from '../../shared/i18n';
 
 function generateMathQuestion(): { question: string; answer: number } {
@@ -111,6 +111,15 @@ export function renderParentZone(parentEl: HTMLElement): void {
           <span class="parent-stat-value">${activityDays.length}</span>
         </div>
 
+        <div class="parent-options">
+          <h3>⚙️ Options</h3>
+          <label class="parent-toggle-row">
+            <span>Clavier intégré AZERTY</span>
+            <span class="parent-toggle-hint">Désactive la correction automatique du clavier Android</span>
+            <input type="checkbox" id="chk-builtin-keyboard" ${state.profile.useBuiltInKeyboard ? 'checked' : ''} />
+          </label>
+        </div>
+
         ${renderProfileManagement()}
 
         <button class="reset-btn" id="btn-reset">${t.profile.reset}</button>
@@ -142,6 +151,12 @@ export function renderParentZone(parentEl: HTMLElement): void {
           showParentDashboard(); // Re-render
         }
       });
+    });
+
+    // Built-in keyboard toggle
+    document.getElementById('chk-builtin-keyboard')?.addEventListener('change', (e) => {
+      const checked = (e.target as HTMLInputElement).checked;
+      updateState((s) => { s.profile.useBuiltInKeyboard = checked; });
     });
 
     // Reset

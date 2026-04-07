@@ -7,6 +7,7 @@ import { renderMascot } from '../../shared/mascot';
 import { speak, hasTtsSupport } from '../../shared/tts';
 import { getRandomSentence } from './sentences';
 import { compareWords, getScore, isComplete, isPerfect, type ComparisonResult } from './comparison';
+import { attachKeyboard, isBuiltInKeyboardEnabled } from '../../shared/keyboard';
 import './dictation.css';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -172,7 +173,8 @@ function renderExercise(container: HTMLElement): void {
         </div>
       ` : `
         <div class="dictation-input-area">
-          <input type="text" class="dictation-input" id="dictation-input" placeholder="Tape la phrase ici..." autocomplete="off" autocapitalize="off" />
+          <input type="text" class="dictation-input" id="dictation-input" placeholder="Tape la phrase ici..." autocomplete="off" autocapitalize="off" autocorrect="off" />
+          <div id="dictation-keyboard-container"></div>
         </div>
       `}
     </div>
@@ -191,6 +193,12 @@ function renderExercise(container: HTMLElement): void {
   if (!done) {
     const input = document.getElementById('dictation-input') as HTMLInputElement;
     input.focus();
+
+    // Attach virtual keyboard if enabled
+    if (isBuiltInKeyboardEnabled()) {
+      document.body.classList.add('vk-active');
+      attachKeyboard(input, document.getElementById('dictation-keyboard-container')!);
+    }
 
     input.addEventListener('input', () => {
       if (!session) return;
@@ -247,7 +255,10 @@ function renderExercise(container: HTMLElement): void {
   });
 }
 
-export function renderDictation(container: HTMLElement): void {
+export function renderDictation(container: HTMLElement): (() => void) {
   session = null;
   renderDifficultySelect(container);
+  return () => {
+    document.body.classList.remove('vk-active');
+  };
 }

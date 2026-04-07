@@ -305,6 +305,41 @@
   border-radius: 1rem;
 }
 
+/* Parent zone — options */
+.parent-options {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.parent-options h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.parent-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.parent-toggle-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.parent-toggle-hint {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 /* Parent zone — profile management */
 .parent-profiles {
   margin-top: 1.5rem;

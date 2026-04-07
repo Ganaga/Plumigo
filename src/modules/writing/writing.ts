@@ -21,6 +21,7 @@ import {
 } from './editor';
 import type { GrammarError } from './grammar-checker';
 import { startPomodoro, formatTime, type PomodoroController } from '../../shared/pomodoro';
+import { attachKeyboard, isBuiltInKeyboardEnabled } from '../../shared/keyboard';
 import type { Story } from '../../types';
 import './writing.css';
 
@@ -189,6 +190,7 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       </div>
 
       <div id="suggestion-popup-container"></div>
+      <div id="virtual-keyboard-container"></div>
     </div>
   `;
 
@@ -204,6 +206,13 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
 
   // Init editor with grammar checking
   initEditor(editorEl);
+
+  // Attach virtual keyboard if enabled
+  let cleanupKeyboard = () => {};
+  if (isBuiltInKeyboardEnabled()) {
+    document.body.classList.add('vk-active');
+    cleanupKeyboard = attachKeyboard(editorEl, document.getElementById('virtual-keyboard-container')!);
+  }
 
   // Trigger initial check after a short delay
   setTimeout(() => triggerCheck(editorEl), 500);
@@ -538,6 +547,8 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     if (saveTimer) clearTimeout(saveTimer);
     if (pomodoroCtrl) { pomodoroCtrl.stop(); pomodoroCtrl = null; }
     document.getElementById('pomodoro-break-overlay')?.remove();
+    cleanupKeyboard();
+    document.body.classList.remove('vk-active');
   };
 }
 

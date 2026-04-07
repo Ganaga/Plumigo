@@ -17,6 +17,7 @@ export interface AppState {
     createdAt: string;
     theme: 'light' | 'dark';
     mascot: string;
+    useBuiltInKeyboard: boolean;
   };
   writing: {
     stories: Story[];
