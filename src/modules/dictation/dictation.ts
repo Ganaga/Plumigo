@@ -7,7 +7,8 @@ import { renderMascot } from '../../shared/mascot';
 import { speak, hasTtsSupport } from '../../shared/tts';
 import { getRandomSentence } from './sentences';
 import { compareWords, getScore, isComplete, isPerfect, type ComparisonResult } from './comparison';
-import { attachKeyboard, isBuiltInKeyboardEnabled } from '../../shared/keyboard';
+import { isBuiltInKeyboardEnabled } from '../../shared/keyboard';
+import '../../shared/keyboard';
 import './dictation.css';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -174,7 +175,7 @@ function renderExercise(container: HTMLElement): void {
       ` : `
         <div class="dictation-input-area">
           <input type="text" class="dictation-input" id="dictation-input" placeholder="Tape la phrase ici..." autocomplete="off" autocapitalize="off" autocorrect="off" />
-          <div id="dictation-keyboard-container"></div>
+          <plumigo-keyboard id="dict-vk-component"></plumigo-keyboard>
         </div>
       `}
     </div>
@@ -195,9 +196,10 @@ function renderExercise(container: HTMLElement): void {
     input.focus();
 
     // Attach virtual keyboard if enabled
-    if (isBuiltInKeyboardEnabled()) {
-      document.body.classList.add('vk-active');
-      attachKeyboard(input, document.getElementById('dictation-keyboard-container')!);
+    const dictVk = document.getElementById('dict-vk-component') as any;
+    if (dictVk && isBuiltInKeyboardEnabled()) {
+      dictVk.target = input;
+      dictVk.active = true;
     }
 
     input.addEventListener('input', () => {

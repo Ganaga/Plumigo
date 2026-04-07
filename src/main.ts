@@ -1,5 +1,4 @@
 import './style.css';
-import './shared/keyboard.css';
 import { registerRoute, initRouter } from './router';
 import { renderDashboard } from './modules/dashboard/dashboard';
 import { renderWriting } from './modules/writing/writing';

@@ -3,7 +3,8 @@ import { getState, updateState } from '../../shared/storage';
 import { addPoints, recordWritingActivity, recordCorrection, awardZeroFault, updateCleanStreak, getDailyWordsWritten, getDailyWordGoal } from '../../shared/gamification';
 import { showNotification, showGammeCelebration, fireConfetti } from '../../shared/animations';
 import { playAchievement, playTimerEnd, playKeySound } from '../../shared/audio';
-import { renderMascot, getMascotSpeech } from '../../shared/mascot';
+import { renderMascot } from '../../shared/mascot';
+import '../../shared/feedback';
 import { t } from '../../shared/i18n';
 import { isTtsEnabled, toggleTts, hasTtsSupport } from '../../shared/tts';
 import {
@@ -18,12 +19,12 @@ import {
   redo,
   isOneAtATimeMode,
   setOneAtATimeMode,
-  getClosestError,
   getClosestErrorIndex,
 } from './editor';
 import type { GrammarError } from './grammar-checker';
 import { startPomodoro, formatTime, type PomodoroController } from '../../shared/pomodoro';
-import { attachKeyboard, isBuiltInKeyboardEnabled } from '../../shared/keyboard';
+import { isBuiltInKeyboardEnabled } from '../../shared/keyboard';
+import '../../shared/keyboard';
 import type { Story } from '../../types';
 import './writing.css';
 
@@ -159,10 +160,7 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     <div class="writing-page fade-in">
       <button class="back-btn" id="btn-back-editor">← ${t.writing.back}</button>
 
-      <div class="mascot-feedback" id="mascot-feedback">
-        ${renderMascot('happy', 48)}
-        <span class="mascot-feedback-text">${getMascotSpeech('happy')}</span>
-      </div>
+      <plumigo-feedback id="feedback-component"></plumigo-feedback>
 
       <div class="daily-progress" id="daily-progress">
         <span class="daily-progress-label">Objectif : <strong id="daily-words">0</strong> / <span id="daily-goal">${getDailyWordGoal()}</span> mots</span>
@@ -192,7 +190,7 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       </div>
 
       <div id="suggestion-popup-container"></div>
-      <div id="virtual-keyboard-container"></div>
+      <plumigo-keyboard id="vk-component"></plumigo-keyboard>
     </div>
   `;
 
@@ -210,19 +208,19 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
   initEditor(editorEl);
 
   // Attach virtual keyboard if enabled
-  let cleanupKeyboard = () => {};
-  if (isBuiltInKeyboardEnabled()) {
-    document.body.classList.add('vk-active');
-    cleanupKeyboard = attachKeyboard(editorEl, document.getElementById('virtual-keyboard-container')!);
+  const vkEl = document.getElementById('vk-component') as any;
+  if (vkEl && isBuiltInKeyboardEnabled()) {
+    vkEl.target = editorEl;
+    vkEl.active = true;
   }
 
   // Trigger initial check after a short delay
   setTimeout(() => triggerCheck(editorEl), 500);
   updateDailyProgress();
 
-  const feedbackEl = document.getElementById('mascot-feedback')!;
+  const feedbackEl = document.getElementById('feedback-component') as any;
 
-  function updateFeedback(errors: GrammarError[]): void {
+  setOnErrorsUpdated((errors: GrammarError[]) => {
     const text = getEditorText(editorEl);
     const wordCount = text.trim().split(/\s+/).filter((w) => w.length > 0).length;
 
@@ -237,8 +235,15 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       }
     }
 
+    // Update feedback component
+    if (feedbackEl) {
+      feedbackEl.errors = errors;
+      feedbackEl.text = text;
+      feedbackEl.cursorPos = 0; // Will be updated by editor
+    }
+
+    // Points & achievements
     if (errors.length === 0) {
-      // Encouragement mode
       if (text.trim().length > 10) {
         errorCountEl.innerHTML = `<span class="no-errors">✅ ${t.writing.noErrors}</span>`;
         if (!zeroFaultAwarded) {
@@ -246,45 +251,11 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
           awardZeroFault();
           addPoints(2);
         }
-        const encouragements = [
-          'Zéro faute, bravo ! Continue comme ça !',
-          'Parfait ! Ton texte est impeccable !',
-          'Aucune erreur, tu es un champion !',
-          'Super travail ! Pas une seule faute !',
-          'Excellent, ton écriture est parfaite !',
-        ];
-        const msg = encouragements[Math.floor(Math.random() * encouragements.length)]!;
-        feedbackEl.innerHTML = `${renderMascot('ecstatic', 48)}<span class="mascot-feedback-text feedback-ok">${msg}</span>`;
-      } else if (text.trim().length === 0) {
-        feedbackEl.innerHTML = `${renderMascot('happy', 48)}<span class="mascot-feedback-text">${getMascotSpeech('happy')}</span>`;
-        errorCountEl.innerHTML = '';
       } else {
-        feedbackEl.innerHTML = `${renderMascot('happy', 48)}<span class="mascot-feedback-text">Continue d'écrire, tu te débrouilles bien !</span>`;
         errorCountEl.innerHTML = '';
       }
     } else {
       zeroFaultAwarded = false;
-      // Show closest error to cursor as mascot feedback
-      const closest = getClosestError() ?? errors[0]!;
-      const errorWord = text.slice(closest.offset, closest.offset + closest.length);
-      let msg: string;
-
-      if (closest.isGrammar) {
-        msg = closest.shortMessage
-          ? `${closest.shortMessage} : « ${errorWord} » — ${closest.message}`
-          : `Attention : « ${errorWord} » — ${closest.message}`;
-      } else {
-        if (closest.replacements.length > 0) {
-          msg = `Attention, « ${errorWord} » semble mal écrit ! Essaie « ${closest.replacements[0]} »`;
-        } else {
-          msg = `Attention, vérifie le mot « ${errorWord} »`;
-        }
-      }
-
-      const pose = 'unhappy' as const;
-      feedbackEl.innerHTML = `${renderMascot(pose, 48)}<span class="mascot-feedback-text feedback-error">${msg}</span>`;
-
-      // Error count display
       if (isOneAtATimeMode()) {
         const closestIdx = getClosestErrorIndex();
         errorCountEl.innerHTML = `<span class="error-badge error-badge-progress">Erreur ${closestIdx + 1} sur ${errors.length}</span>`;
@@ -297,9 +268,7 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
         errorCountEl.innerHTML = parts.join(' ');
       }
     }
-  }
-
-  setOnErrorsUpdated(updateFeedback);
+  });
 
   // Suggestion popup on error click
   setOnErrorClick((error: GrammarError, rect: DOMRect) => {
@@ -547,8 +516,8 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     if (saveTimer) clearTimeout(saveTimer);
     if (pomodoroCtrl) { pomodoroCtrl.stop(); pomodoroCtrl = null; }
     document.getElementById('pomodoro-break-overlay')?.remove();
-    cleanupKeyboard();
-    document.body.classList.remove('vk-active');
+    const vk = document.getElementById('vk-component') as any;
+    if (vk) { vk.active = false; vk.target = null; }
   };
 }
 

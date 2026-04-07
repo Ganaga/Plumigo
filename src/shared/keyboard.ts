@@ -1,3 +1,5 @@
+import { LitElement, html, css } from 'lit';
+import { customElement, property, state as litState } from 'lit/decorators.js';
 import { getState } from './storage';
 
 export function isBuiltInKeyboardEnabled(): boolean {
@@ -27,254 +29,275 @@ const ROWS_NUMBERS = [
 
 type KeyboardMode = 'lower' | 'upper' | 'numbers';
 
-interface KeyboardState {
-  mode: KeyboardMode;
-  target: HTMLElement | HTMLInputElement | null;
-  containerEl: HTMLElement | null;
-  // For contenteditable: track cursor as character offset in plain text
-  cursorPos: number;
-}
+@customElement('plumigo-keyboard')
+export class PlumigoKeyboard extends LitElement {
+  @property({ type: Object }) target: HTMLElement | HTMLInputElement | null = null;
+  @property({ type: Boolean }) active = false;
 
-const state: KeyboardState = {
-  mode: 'lower',
-  target: null,
-  containerEl: null,
-  cursorPos: 0,
-};
+  @litState() private mode: KeyboardMode = 'lower';
+  private cursorPos = 0;
+  private cleanupTracker: (() => void) | null = null;
 
-function getRows(): string[][] {
-  if (state.mode === 'upper') return ROWS_UPPER;
-  if (state.mode === 'numbers') return ROWS_NUMBERS;
-  return ROWS_LOWER;
-}
-
-function getKeyClass(key: string): string {
-  if (key === 'ESPACE') return 'vk-key vk-space';
-  if (key === 'SHIFT') return `vk-key vk-special ${state.mode === 'upper' ? 'vk-key vk-active' : ''}`;
-  if (key === 'BACK') return 'vk-key vk-special';
-  if (key === 'ENTER') return 'vk-key vk-special vk-enter';
-  if (key === '123' || key === 'ABC') return 'vk-key vk-special';
-  return 'vk-key';
-}
-
-function getKeyLabel(key: string): string {
-  if (key === 'ESPACE') return 'espace';
-  if (key === 'SHIFT') return '⇧';
-  if (key === 'BACK') return '⌫';
-  if (key === 'ENTER') return '↵';
-  return key;
-}
-
-function getPlainText(el: HTMLElement): string {
-  return el.innerText || el.textContent || '';
-}
-
-function setCursorInContentEditable(el: HTMLElement, pos: number): void {
-  const sel = window.getSelection();
-  if (!sel) return;
-
-  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-  let currentOffset = 0;
-
-  while (walker.nextNode()) {
-    const node = walker.currentNode as Text;
-    const len = node.length;
-    if (currentOffset + len >= pos) {
-      const range = document.createRange();
-      range.setStart(node, Math.min(pos - currentOffset, len));
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      return;
+  static styles = css`
+    :host {
+      display: block;
     }
-    currentOffset += len;
-  }
 
-  // If pos is beyond text, place at end
-  const range = document.createRange();
-  range.selectNodeContents(el);
-  range.collapse(false);
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-function insertText(text: string): void {
-  if (!state.target) return;
-
-  if (state.target instanceof HTMLInputElement) {
-    const input = state.target;
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? start;
-    input.value = input.value.slice(0, start) + text + input.value.slice(end);
-    const newPos = start + text.length;
-    input.setSelectionRange(newPos, newPos);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  } else {
-    // contenteditable — use plain text manipulation
-    const plainText = getPlainText(state.target);
-    const pos = state.cursorPos;
-    const newText = plainText.slice(0, pos) + text + plainText.slice(pos);
-    state.target.innerText = newText;
-    state.cursorPos = pos + text.length;
-    setCursorInContentEditable(state.target, state.cursorPos);
-    state.target.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-}
-
-function handleBackspace(): void {
-  if (!state.target) return;
-
-  if (state.target instanceof HTMLInputElement) {
-    const input = state.target;
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? start;
-    if (start !== end) {
-      input.value = input.value.slice(0, start) + input.value.slice(end);
-      input.setSelectionRange(start, start);
-    } else if (start > 0) {
-      input.value = input.value.slice(0, start - 1) + input.value.slice(start);
-      input.setSelectionRange(start - 1, start - 1);
+    :host(:not([active])) .keyboard {
+      display: none;
     }
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  } else {
-    // contenteditable — plain text manipulation
-    const plainText = getPlainText(state.target);
-    const pos = state.cursorPos;
-    if (pos > 0) {
-      const newText = plainText.slice(0, pos - 1) + plainText.slice(pos);
-      state.target.innerText = newText;
-      state.cursorPos = pos - 1;
-      setCursorInContentEditable(state.target, state.cursorPos);
-      state.target.dispatchEvent(new Event('input', { bubbles: true }));
+
+    .keyboard {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      border-top: 2px solid var(--border);
+      padding: 0.4rem 0.3rem 0.6rem;
+      z-index: 900;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
     }
-  }
-}
 
-function handleKey(key: string): void {
-  if (key === 'SHIFT') {
-    state.mode = state.mode === 'upper' ? 'lower' : 'upper';
-    render();
-    return;
-  }
-  if (key === '123') {
-    state.mode = 'numbers';
-    render();
-    return;
-  }
-  if (key === 'ABC') {
-    state.mode = 'lower';
-    render();
-    return;
-  }
-  if (key === 'BACK') {
-    handleBackspace();
-    return;
-  }
-  if (key === 'ENTER') {
-    insertText('\n');
-    return;
-  }
-  if (key === 'ESPACE') {
-    insertText(' ');
-    if (state.mode === 'upper') {
-      state.mode = 'lower';
-      render();
+    .row {
+      display: flex;
+      justify-content: center;
+      gap: 0.25rem;
     }
-    return;
-  }
 
-  insertText(key);
+    .key {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 42px;
+      padding: 0 0.4rem;
+      border: none;
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      transition: background 0.08s;
+      flex: 1;
+      max-width: 42px;
+    }
 
-  if (state.mode === 'upper') {
-    state.mode = 'lower';
-    render();
-  }
-}
+    .key:active, .key.pressed {
+      background: var(--primary-light);
+      color: white;
+    }
 
-function render(): void {
-  if (!state.containerEl) return;
+    .special {
+      background: var(--border);
+      font-size: 0.85rem;
+      flex: 1.3;
+      max-width: 56px;
+    }
 
-  const rows = getRows();
-  state.containerEl.innerHTML = `
-    <div class="vk-keyboard">
-      ${rows.map((row) => `
-        <div class="vk-row">
-          ${row.map((key) => `
-            <button class="${getKeyClass(key)}" data-vk-key="${key}" type="button">${getKeyLabel(key)}</button>
-          `).join('')}
-        </div>
-      `).join('')}
-    </div>
+    .shift-active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .space {
+      flex: 5;
+      max-width: none;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .enter {
+      flex: 1.5;
+      max-width: 60px;
+    }
   `;
 
-  state.containerEl.querySelectorAll('[data-vk-key]').forEach((btn) => {
-    btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      const key = (btn as HTMLElement).getAttribute('data-vk-key')!;
-      btn.classList.add('vk-pressed');
-      setTimeout(() => btn.classList.remove('vk-pressed'), 120);
-      handleKey(key);
-    });
-  });
-}
+  private getPlainText(el: HTMLElement): string {
+    return el.innerText || el.textContent || '';
+  }
 
-// Track cursor position when user taps in the contenteditable
-function trackCursorFromTap(el: HTMLElement): () => void {
-  const handler = () => {
+  private setCursor(el: HTMLElement, pos: number): void {
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    const preRange = document.createRange();
-    preRange.selectNodeContents(el);
-    preRange.setEnd(range.startContainer, range.startOffset);
-    state.cursorPos = preRange.toString().length;
-  };
+    if (!sel) return;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let offset = 0;
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text;
+      const len = node.length;
+      if (offset + len >= pos) {
+        const range = document.createRange();
+        range.setStart(node, Math.min(pos - offset, len));
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return;
+      }
+      offset += len;
+    }
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
 
-  el.addEventListener('pointerup', handler);
-  el.addEventListener('keyup', handler);
-  return () => {
-    el.removeEventListener('pointerup', handler);
-    el.removeEventListener('keyup', handler);
-  };
+  private insertText(text: string): void {
+    if (!this.target) return;
+    if (this.target instanceof HTMLInputElement) {
+      const input = this.target;
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? start;
+      input.value = input.value.slice(0, start) + text + input.value.slice(end);
+      const newPos = start + text.length;
+      input.setSelectionRange(newPos, newPos);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      const plain = this.getPlainText(this.target);
+      const pos = this.cursorPos;
+      this.target.innerText = plain.slice(0, pos) + text + plain.slice(pos);
+      this.cursorPos = pos + text.length;
+      this.setCursor(this.target, this.cursorPos);
+      this.target.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  private handleBackspace(): void {
+    if (!this.target) return;
+    if (this.target instanceof HTMLInputElement) {
+      const input = this.target;
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? start;
+      if (start !== end) {
+        input.value = input.value.slice(0, start) + input.value.slice(end);
+        input.setSelectionRange(start, start);
+      } else if (start > 0) {
+        input.value = input.value.slice(0, start - 1) + input.value.slice(start);
+        input.setSelectionRange(start - 1, start - 1);
+      }
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      const plain = this.getPlainText(this.target);
+      const pos = this.cursorPos;
+      if (pos > 0) {
+        this.target.innerText = plain.slice(0, pos - 1) + plain.slice(pos);
+        this.cursorPos = pos - 1;
+        this.setCursor(this.target, this.cursorPos);
+        this.target.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  }
+
+  private handleKey(key: string): void {
+    if (key === 'SHIFT') { this.mode = this.mode === 'upper' ? 'lower' : 'upper'; return; }
+    if (key === '123') { this.mode = 'numbers'; return; }
+    if (key === 'ABC') { this.mode = 'lower'; return; }
+    if (key === 'BACK') { this.handleBackspace(); return; }
+    if (key === 'ENTER') { this.insertText('\n'); return; }
+    if (key === 'ESPACE') {
+      this.insertText(' ');
+      if (this.mode === 'upper') this.mode = 'lower';
+      return;
+    }
+    this.insertText(key);
+    if (this.mode === 'upper') this.mode = 'lower';
+  }
+
+  updated(changed: Map<string, unknown>) {
+    if (changed.has('target') || changed.has('active')) {
+      this.cleanupTracker?.();
+      this.cleanupTracker = null;
+
+      if (this.active && this.target) {
+        this.target.setAttribute('inputmode', 'none');
+        document.body.classList.add('vk-active');
+
+        if (this.target instanceof HTMLInputElement) {
+          this.cursorPos = this.target.value.length;
+        } else {
+          this.cursorPos = this.getPlainText(this.target).length;
+          const handler = () => {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0 || !this.target) return;
+            const range = sel.getRangeAt(0);
+            const pre = document.createRange();
+            pre.selectNodeContents(this.target);
+            pre.setEnd(range.startContainer, range.startOffset);
+            this.cursorPos = pre.toString().length;
+          };
+          this.target.addEventListener('pointerup', handler);
+          this.target.addEventListener('keyup', handler);
+          this.cleanupTracker = () => {
+            this.target?.removeEventListener('pointerup', handler);
+            this.target?.removeEventListener('keyup', handler);
+          };
+        }
+      } else {
+        document.body.classList.remove('vk-active');
+      }
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.cleanupTracker?.();
+    document.body.classList.remove('vk-active');
+  }
+
+  private getRows(): string[][] {
+    if (this.mode === 'upper') return ROWS_UPPER;
+    if (this.mode === 'numbers') return ROWS_NUMBERS;
+    return ROWS_LOWER;
+  }
+
+  private keyClass(key: string): string {
+    if (key === 'ESPACE') return 'key space';
+    if (key === 'SHIFT') return `key special ${this.mode === 'upper' ? 'shift-active' : ''}`;
+    if (key === 'BACK') return 'key special';
+    if (key === 'ENTER') return 'key special enter';
+    if (key === '123' || key === 'ABC') return 'key special';
+    return 'key';
+  }
+
+  private keyLabel(key: string): string {
+    if (key === 'ESPACE') return 'espace';
+    if (key === 'SHIFT') return '⇧';
+    if (key === 'BACK') return '⌫';
+    if (key === 'ENTER') return '↵';
+    return key;
+  }
+
+  render() {
+    const rows = this.getRows();
+    return html`
+      <div class="keyboard">
+        ${rows.map((row) => html`
+          <div class="row">
+            ${row.map((key) => html`
+              <button class="${this.keyClass(key)}"
+                      type="button"
+                      @pointerdown=${(e: Event) => { e.preventDefault(); this.handleKey(key); }}>
+                ${this.keyLabel(key)}
+              </button>
+            `)}
+          </div>
+        `)}
+      </div>
+    `;
+  }
 }
 
-export function attachKeyboard(
-  targetEl: HTMLElement | HTMLInputElement,
-  containerEl: HTMLElement,
-): () => void {
-  if (!isBuiltInKeyboardEnabled()) {
-    containerEl.innerHTML = '';
-    return () => {};
+declare global {
+  interface HTMLElementTagNameMap {
+    'plumigo-keyboard': PlumigoKeyboard;
   }
-
-  // Prevent native keyboard on mobile
-  targetEl.setAttribute('inputmode', 'none');
-
-  // Set initial cursor position at end
-  if (targetEl instanceof HTMLInputElement) {
-    state.cursorPos = targetEl.value.length;
-  } else {
-    state.cursorPos = getPlainText(targetEl).length;
-  }
-
-  state.target = targetEl;
-  state.containerEl = containerEl;
-  state.mode = 'lower';
-  render();
-
-  // Track taps on contenteditable to update cursor position
-  let cleanupTracker = () => {};
-  if (!(targetEl instanceof HTMLInputElement)) {
-    cleanupTracker = trackCursorFromTap(targetEl);
-  }
-
-  return () => {
-    state.target = null;
-    if (state.containerEl) {
-      state.containerEl.innerHTML = '';
-      state.containerEl = null;
-    }
-    cleanupTracker();
-    targetEl.removeAttribute('inputmode');
-  };
 }

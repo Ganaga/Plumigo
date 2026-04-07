@@ -4,7 +4,8 @@ import { LEVELS, ACHIEVEMENTS } from '../../shared/gamification';
 import { renderMascot, renderMascotById, MASCOTS, type MascotId } from '../../shared/mascot';
 import { t } from '../../shared/i18n';
 import { updateFavicon } from '../../shared/favicon';
-import { renderParentZone } from './parent-zone';
+import '../../shared/badges';
+import './parent-zone';
 import './profile.css';
 
 export function renderProfile(container: HTMLElement): void {
@@ -96,21 +97,7 @@ export function renderProfile(container: HTMLElement): void {
         </div>
       </div>
 
-      <div class="achievements-section">
-        <h2>🏅 ${t.profile.achievements}</h2>
-        <div class="achievements-grid">
-          ${ACHIEVEMENTS.map((ach) => {
-            const unlocked = unlockedIds.has(ach.id);
-            return `
-              <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
-                <span class="achievement-icon">${unlocked ? ach.icon : '🔒'}</span>
-                <span class="achievement-name">${ach.name}</span>
-                <span class="achievement-desc">${unlocked ? ach.description : t.profile.locked}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
+      <plumigo-badges id="badges-component"></plumigo-badges>
 
       <div class="stats-section">
         <h2>📊 ${t.profile.stats}</h2>
@@ -134,11 +121,18 @@ export function renderProfile(container: HTMLElement): void {
         </div>
       </div>
 
-      <div id="parent-zone"></div>
+      <plumigo-parent-zone id="parent-zone-component"></plumigo-parent-zone>
 
       <p class="profile-credits">Cette application a été développée par Ganaël Jatteau pour aider les enfants qui ont des difficultés en orthographe.</p>
     </div>
   `;
+
+  // Set badges component properties
+  const badgesEl = document.getElementById('badges-component') as any;
+  if (badgesEl) {
+    badgesEl.achievements = ACHIEVEMENTS;
+    badgesEl.unlockedIds = [...unlockedIds];
+  }
 
   document.getElementById('btn-back-profile')?.addEventListener('click', () => navigate(''));
 
@@ -200,5 +194,8 @@ export function renderProfile(container: HTMLElement): void {
     });
   });
 
-  renderParentZone(document.getElementById('parent-zone')!);
+  // Listen for profile changes from parent zone component
+  document.getElementById('parent-zone-component')?.addEventListener('profile-changed', () => {
+    renderProfile(container);
+  });
 }
