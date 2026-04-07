@@ -5,6 +5,7 @@ let currentErrors: GrammarError[] = [];
 let onErrorClick: ((error: GrammarError, rect: DOMRect) => void) | null = null;
 let onErrorsUpdated: ((errors: GrammarError[]) => void) | null = null;
 let oneAtATimeMode = true;
+let lastKnownCursorPos = 0;
 
 export function setOneAtATimeMode(enabled: boolean): void {
   oneAtATimeMode = enabled;
@@ -44,8 +45,22 @@ function buildDecoratedHtml(text: string, errors: GrammarError[]): string {
     .map((e, i) => ({ ...e, originalIdx: i }))
     .sort((a, b) => a.offset - b.offset);
 
-  // In one-at-a-time mode, only show the first error
-  const visible = oneAtATimeMode ? sorted.slice(0, 1) : sorted;
+  // In one-at-a-time mode, show the error closest to the cursor
+  let visible = sorted;
+  if (oneAtATimeMode) {
+    const cursorPos = lastKnownCursorPos;
+    // Find the closest error to the cursor
+    let closest = sorted[0]!;
+    let closestDist = Infinity;
+    for (const err of sorted) {
+      const dist = Math.min(Math.abs(err.offset - cursorPos), Math.abs(err.offset + err.length - cursorPos));
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = err;
+      }
+    }
+    visible = [closest];
+  }
 
   let result = '';
   let lastEnd = 0;
@@ -105,6 +120,7 @@ function restoreSelection(el: HTMLElement, offset: number): void {
 function applyDecorations(editorEl: HTMLElement): void {
   const text = getPlainText(editorEl);
   const cursorPos = saveSelection(editorEl);
+  lastKnownCursorPos = cursorPos;
   const html = buildDecoratedHtml(text, currentErrors);
   editorEl.innerHTML = html;
   restoreSelection(editorEl, cursorPos);
@@ -261,6 +277,30 @@ export function getCurrentErrors(): GrammarError[] {
   return currentErrors;
 }
 
+export function getClosestError(): GrammarError | null {
+  if (currentErrors.length === 0) return null;
+  if (currentErrors.length === 1) return currentErrors[0]!;
+
+  const cursor = lastKnownCursorPos;
+  let closest = currentErrors[0]!;
+  let closestDist = Infinity;
+  for (const err of currentErrors) {
+    const dist = Math.min(Math.abs(err.offset - cursor), Math.abs(err.offset + err.length - cursor));
+    if (dist < closestDist) {
+      closestDist = dist;
+      closest = err;
+    }
+  }
+  return closest;
+}
+
+export function getClosestErrorIndex(): number {
+  const err = getClosestError();
+  if (!err) return 0;
+  const sorted = [...currentErrors].sort((a, b) => a.offset - b.offset);
+  return sorted.indexOf(err);
+}
+
 export function cleanupEditor(): void {
   cancelCheck();
   currentErrors = [];
@@ -269,5 +309,6 @@ export function cleanupEditor(): void {
   undoStack = [];
   redoStack = [];
   lastSnapshot = '';
+  lastKnownCursorPos = 0;
   if (snapshotTimer) clearTimeout(snapshotTimer);
 }

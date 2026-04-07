@@ -18,6 +18,8 @@ import {
   redo,
   isOneAtATimeMode,
   setOneAtATimeMode,
+  getClosestError,
+  getClosestErrorIndex,
 } from './editor';
 import type { GrammarError } from './grammar-checker';
 import { startPomodoro, formatTime, type PomodoroController } from '../../shared/pomodoro';
@@ -262,18 +264,18 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
       }
     } else {
       zeroFaultAwarded = false;
-      // Show first error as mascot feedback
-      const first = errors[0]!;
-      const errorWord = text.slice(first.offset, first.offset + first.length);
+      // Show closest error to cursor as mascot feedback
+      const closest = getClosestError() ?? errors[0]!;
+      const errorWord = text.slice(closest.offset, closest.offset + closest.length);
       let msg: string;
 
-      if (first.isGrammar) {
-        msg = first.shortMessage
-          ? `${first.shortMessage} : « ${errorWord} » — ${first.message}`
-          : `Attention : « ${errorWord} » — ${first.message}`;
+      if (closest.isGrammar) {
+        msg = closest.shortMessage
+          ? `${closest.shortMessage} : « ${errorWord} » — ${closest.message}`
+          : `Attention : « ${errorWord} » — ${closest.message}`;
       } else {
-        if (first.replacements.length > 0) {
-          msg = `Attention, « ${errorWord} » semble mal écrit ! Essaie « ${first.replacements[0]} »`;
+        if (closest.replacements.length > 0) {
+          msg = `Attention, « ${errorWord} » semble mal écrit ! Essaie « ${closest.replacements[0]} »`;
         } else {
           msg = `Attention, vérifie le mot « ${errorWord} »`;
         }
@@ -284,10 +286,8 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
 
       // Error count display
       if (isOneAtATimeMode()) {
-        // Find which error number the first visible one is
-        const sortedByOffset = [...errors].sort((a, b) => a.offset - b.offset);
-        const visibleIdx = errors.indexOf(sortedByOffset[0]!);
-        errorCountEl.innerHTML = `<span class="error-badge error-badge-progress">Erreur ${visibleIdx + 1} sur ${errors.length}</span>`;
+        const closestIdx = getClosestErrorIndex();
+        errorCountEl.innerHTML = `<span class="error-badge error-badge-progress">Erreur ${closestIdx + 1} sur ${errors.length}</span>`;
       } else {
         const spelling = errors.filter((e) => !e.isGrammar).length;
         const grammar = errors.filter((e) => e.isGrammar).length;
