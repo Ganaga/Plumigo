@@ -20,6 +20,7 @@ import {
   isOneAtATimeMode,
   setOneAtATimeMode,
   getClosestErrorIndex,
+  getCursorPos,
 } from './editor';
 import type { GrammarError } from './grammar-checker';
 import { startPomodoro, formatTime, type PomodoroController } from '../../shared/pomodoro';
@@ -239,7 +240,7 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     if (feedbackEl) {
       feedbackEl.errors = errors;
       feedbackEl.text = text;
-      feedbackEl.cursorPos = 0; // Will be updated by editor
+      feedbackEl.cursorPos = getCursorPos();
     }
 
     // Points & achievements
