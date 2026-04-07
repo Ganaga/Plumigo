@@ -31,14 +31,15 @@ interface KeyboardState {
   mode: KeyboardMode;
   target: HTMLElement | HTMLInputElement | null;
   containerEl: HTMLElement | null;
-  onInput: (() => void) | null;
+  // For contenteditable: track cursor as character offset in plain text
+  cursorPos: number;
 }
 
 const state: KeyboardState = {
   mode: 'lower',
   target: null,
   containerEl: null,
-  onInput: null,
+  cursorPos: 0,
 };
 
 function getRows(): string[][] {
@@ -49,7 +50,7 @@ function getRows(): string[][] {
 
 function getKeyClass(key: string): string {
   if (key === 'ESPACE') return 'vk-key vk-space';
-  if (key === 'SHIFT') return `vk-key vk-special ${state.mode === 'upper' ? 'vk-active' : ''}`;
+  if (key === 'SHIFT') return `vk-key vk-special ${state.mode === 'upper' ? 'vk-key vk-active' : ''}`;
   if (key === 'BACK') return 'vk-key vk-special';
   if (key === 'ENTER') return 'vk-key vk-special vk-enter';
   if (key === '123' || key === 'ABC') return 'vk-key vk-special';
@@ -64,6 +65,39 @@ function getKeyLabel(key: string): string {
   return key;
 }
 
+function getPlainText(el: HTMLElement): string {
+  return el.innerText || el.textContent || '';
+}
+
+function setCursorInContentEditable(el: HTMLElement, pos: number): void {
+  const sel = window.getSelection();
+  if (!sel) return;
+
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let currentOffset = 0;
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const len = node.length;
+    if (currentOffset + len >= pos) {
+      const range = document.createRange();
+      range.setStart(node, Math.min(pos - currentOffset, len));
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+    currentOffset += len;
+  }
+
+  // If pos is beyond text, place at end
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 function insertText(text: string): void {
   if (!state.target) return;
 
@@ -76,18 +110,13 @@ function insertText(text: string): void {
     input.setSelectionRange(newPos, newPos);
     input.dispatchEvent(new Event('input', { bubbles: true }));
   } else {
-    // contenteditable
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      range.insertNode(document.createTextNode(text));
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    } else {
-      state.target.textContent = (state.target.textContent || '') + text;
-    }
+    // contenteditable — use plain text manipulation
+    const plainText = getPlainText(state.target);
+    const pos = state.cursorPos;
+    const newText = plainText.slice(0, pos) + text + plainText.slice(pos);
+    state.target.innerText = newText;
+    state.cursorPos = pos + text.length;
+    setCursorInContentEditable(state.target, state.cursorPos);
     state.target.dispatchEvent(new Event('input', { bubbles: true }));
   }
 }
@@ -108,23 +137,16 @@ function handleBackspace(): void {
     }
     input.dispatchEvent(new Event('input', { bubbles: true }));
   } else {
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      if (!range.collapsed) {
-        range.deleteContents();
-      } else {
-        // Delete one character backwards
-        const node = range.startContainer;
-        const offset = range.startOffset;
-        if (node.nodeType === Node.TEXT_NODE && offset > 0) {
-          (node as Text).deleteData(offset - 1, 1);
-          range.setStart(node, offset - 1);
-          range.collapse(true);
-        }
-      }
+    // contenteditable — plain text manipulation
+    const plainText = getPlainText(state.target);
+    const pos = state.cursorPos;
+    if (pos > 0) {
+      const newText = plainText.slice(0, pos - 1) + plainText.slice(pos);
+      state.target.innerText = newText;
+      state.cursorPos = pos - 1;
+      setCursorInContentEditable(state.target, state.cursorPos);
+      state.target.dispatchEvent(new Event('input', { bubbles: true }));
     }
-    state.target.dispatchEvent(new Event('input', { bubbles: true }));
   }
 }
 
@@ -154,7 +176,6 @@ function handleKey(key: string): void {
   }
   if (key === 'ESPACE') {
     insertText(' ');
-    // Auto-return to lowercase after space
     if (state.mode === 'upper') {
       state.mode = 'lower';
       render();
@@ -164,7 +185,6 @@ function handleKey(key: string): void {
 
   insertText(key);
 
-  // Auto-return to lowercase after typing one uppercase letter
   if (state.mode === 'upper') {
     state.mode = 'lower';
     render();
@@ -189,13 +209,33 @@ function render(): void {
 
   state.containerEl.querySelectorAll('[data-vk-key]').forEach((btn) => {
     btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault(); // Prevent focus loss from target
+      e.preventDefault();
       const key = (btn as HTMLElement).getAttribute('data-vk-key')!;
       btn.classList.add('vk-pressed');
       setTimeout(() => btn.classList.remove('vk-pressed'), 120);
       handleKey(key);
     });
   });
+}
+
+// Track cursor position when user taps in the contenteditable
+function trackCursorFromTap(el: HTMLElement): () => void {
+  const handler = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const preRange = document.createRange();
+    preRange.selectNodeContents(el);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    state.cursorPos = preRange.toString().length;
+  };
+
+  el.addEventListener('pointerup', handler);
+  el.addEventListener('keyup', handler);
+  return () => {
+    el.removeEventListener('pointerup', handler);
+    el.removeEventListener('keyup', handler);
+  };
 }
 
 export function attachKeyboard(
@@ -208,16 +248,13 @@ export function attachKeyboard(
   }
 
   // Prevent native keyboard on mobile
+  targetEl.setAttribute('inputmode', 'none');
+
+  // Set initial cursor position at end
   if (targetEl instanceof HTMLInputElement) {
-    targetEl.setAttribute('inputmode', 'none');
-    targetEl.setAttribute('readonly', 'readonly');
-    // Remove readonly after a tick so the cursor shows but keyboard doesn't
-    setTimeout(() => {
-      targetEl.removeAttribute('readonly');
-      targetEl.setAttribute('inputmode', 'none');
-    }, 50);
+    state.cursorPos = targetEl.value.length;
   } else {
-    targetEl.setAttribute('inputmode', 'none');
+    state.cursorPos = getPlainText(targetEl).length;
   }
 
   state.target = targetEl;
@@ -225,11 +262,19 @@ export function attachKeyboard(
   state.mode = 'lower';
   render();
 
+  // Track taps on contenteditable to update cursor position
+  let cleanupTracker = () => {};
+  if (!(targetEl instanceof HTMLInputElement)) {
+    cleanupTracker = trackCursorFromTap(targetEl);
+  }
+
   return () => {
     state.target = null;
     if (state.containerEl) {
       state.containerEl.innerHTML = '';
       state.containerEl = null;
     }
+    cleanupTracker();
+    targetEl.removeAttribute('inputmode');
   };
 }
