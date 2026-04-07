@@ -57,7 +57,7 @@
   max-width: 56px;
 }
 
-.vk-active {
+.vk-key.vk-active {
   background: var(--primary);
   color: white;
 }
