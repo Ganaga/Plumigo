@@ -52,6 +52,11 @@ function defaultState(name: string = ''): AppState {
       wordsWon: 0,
       wordsLost: 0,
     },
+    quiz: {
+      questionsAnswered: 0,
+      correctAnswers: 0,
+      currentLevel: 'CP',
+    },
   };
 }
 
@@ -153,6 +158,7 @@ function loadStateFor(profileId: string): AppState {
         gamification: { ...defaults.gamification, ...saved.gamification },
         dictation: { ...defaults.dictation, ...saved.dictation },
         hangman: { ...defaults.hangman, ...saved.hangman },
+        quiz: { ...defaults.quiz, ...saved.quiz },
       };
     }
   } catch { /* */ }

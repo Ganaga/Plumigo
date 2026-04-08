@@ -106,6 +106,11 @@ export function renderDashboard(container: HTMLElement): void {
           <h2>Le Pendu</h2>
           <p>Devine le mot lettre par lettre</p>
         </button>
+        <button class="card card-quiz" data-route="quiz">
+          <div class="card-icon">❓</div>
+          <h2>Quiz</h2>
+          <p>Choisis la bonne orthographe</p>
+        </button>
       </div>
 
       <button class="profile-link" data-route="profile">

@@ -183,6 +183,20 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🏹',
     check: (s) => s.hangman.wordsWon >= 20,
   },
+  {
+    id: 'quiz-10',
+    name: 'Bon élève',
+    description: 'Réponds correctement à 10 questions',
+    icon: '✏️',
+    check: (s) => s.quiz.correctAnswers >= 10,
+  },
+  {
+    id: 'quiz-50',
+    name: 'Expert orthographe',
+    description: 'Réponds correctement à 50 questions',
+    icon: '🎓',
+    check: (s) => s.quiz.correctAnswers >= 50,
+  },
 ];
 
 function computeLevel(points: number): number {

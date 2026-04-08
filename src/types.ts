@@ -46,6 +46,11 @@ export interface AppState {
     wordsWon: number;
     wordsLost: number;
   };
+  quiz: {
+    questionsAnswered: number;
+    correctAnswers: number;
+    currentLevel: 'CP' | 'CE1' | 'CE2' | 'CM1' | 'CM2';
+  };
 }
 
 export interface Achievement {
@@ -61,5 +66,5 @@ export interface Level {
   minPoints: number;
 }
 
-export type Route = '' | 'writing' | 'profile' | 'dictation' | 'hangman';
+export type Route = '' | 'writing' | 'profile' | 'dictation' | 'hangman' | 'quiz';
 export type RouteHandler = (container: HTMLElement, params?: string) => void | (() => void);

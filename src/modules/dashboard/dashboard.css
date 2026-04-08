@@ -173,6 +173,15 @@
   border-color: #c0392b;
 }
 
+.card-quiz {
+  background: linear-gradient(135deg, #74b9ff, #0984e3);
+  color: white;
+}
+
+.card-quiz:hover {
+  border-color: #074d8a;
+}
+
 .profile-link {
   background: var(--surface);
   border: 2px solid var(--border);
