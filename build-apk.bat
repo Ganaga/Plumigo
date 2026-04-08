@@ -51,17 +51,23 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+:: Renommer en plumigo.apk / plumigo.aab
+if exist "plumigo.apk" del "plumigo.apk"
+if exist "plumigo.aab" del "plumigo.aab"
+if exist "app-release-signed.apk" copy /Y "app-release-signed.apk" "plumigo.apk" >nul
+if exist "app-release-bundle.aab" copy /Y "app-release-bundle.aab" "plumigo.aab" >nul
+
 echo.
 echo ========================================
 echo   APK genere avec succes !
 echo ========================================
 echo.
 echo Fichiers generes :
-if exist "app-release-signed.apk" echo   - app-release-signed.apk (pour tester)
-if exist "app-release-bundle.aab" echo   - app-release-bundle.aab (pour le Play Store)
+if exist "plumigo.apk" echo   - plumigo.apk (pour tester / installer sur un appareil)
+if exist "plumigo.aab" echo   - plumigo.aab (pour le Play Store)
 echo.
 echo Pour obtenir le fingerprint SHA256 :
-echo   keytool -printcert -jarfile app-release-signed.apk
+echo   keytool -printcert -jarfile plumigo.apk
 echo.
 echo N'oublie pas de mettre a jour le fingerprint dans :
 echo   public/.well-known/assetlinks.json
