@@ -38,7 +38,7 @@ export interface AppState {
   dictation: {
     sentencesCompleted: number;
     perfectScores: number;
-    currentDifficulty: 'easy' | 'medium' | 'hard';
+    currentLevel: 'CP' | 'CE1' | 'CE2' | 'CM1' | 'CM2';
     showSentence: 'flash' | 'hidden';
     ignoreAccents: boolean;
   };

@@ -44,7 +44,7 @@ function defaultState(name: string = ''): AppState {
     dictation: {
       sentencesCompleted: 0,
       perfectScores: 0,
-      currentDifficulty: 'easy',
+      currentLevel: 'CP',
       showSentence: 'flash',
       ignoreAccents: false,
     },

@@ -5,17 +5,16 @@ import { fireConfetti, fireStars, showNotification } from '../../shared/animatio
 import { playKeySound, playAchievement } from '../../shared/audio';
 import { renderMascot } from '../../shared/mascot';
 import { speak, hasTtsSupport } from '../../shared/tts';
-import { getRandomSentence } from './sentences';
+import { getRandomSentence, type SchoolLevel } from './sentences';
 import { compareWords, finalizeResults, getScore, isPerfect, getErrorRate, type ComparisonResult } from './comparison';
 import { isBuiltInKeyboardEnabled } from '../../shared/keyboard';
 import '../../shared/keyboard';
 import './dictation.css';
 
-type Difficulty = 'easy' | 'medium' | 'hard';
 type ShowMode = 'flash' | 'hidden';
 
 interface SessionState {
-  difficulty: Difficulty;
+  level: SchoolLevel;
   sentence: string;
   sentenceId: number;
   completedIds: number[];
@@ -50,21 +49,31 @@ function renderDifficultySelect(container: HTMLElement): void {
 
       ${!hasTtsSupport() ? '<p class="dictation-warning">La synthèse vocale n\'est pas disponible sur ce navigateur.</p>' : ''}
 
-      <div class="difficulty-selector">
-        <button class="difficulty-btn difficulty-easy" data-diff="easy">
-          <span class="difficulty-icon">🌱</span>
-          <span class="difficulty-label">Facile</span>
-          <span class="difficulty-desc">3 à 5 mots</span>
+      <div class="level-selector">
+        <button class="level-btn level-cp" data-level="CP">
+          <span class="level-icon">🌱</span>
+          <span class="level-label">CP</span>
+          <span class="level-desc">Découverte</span>
         </button>
-        <button class="difficulty-btn difficulty-medium" data-diff="medium">
-          <span class="difficulty-icon">🌿</span>
-          <span class="difficulty-label">Moyen</span>
-          <span class="difficulty-desc">6 à 10 mots</span>
+        <button class="level-btn level-ce1" data-level="CE1">
+          <span class="level-icon">🌿</span>
+          <span class="level-label">CE1</span>
+          <span class="level-desc">Apprentissage</span>
         </button>
-        <button class="difficulty-btn difficulty-hard" data-diff="hard">
-          <span class="difficulty-icon">🌳</span>
-          <span class="difficulty-label">Difficile</span>
-          <span class="difficulty-desc">11+ mots</span>
+        <button class="level-btn level-ce2" data-level="CE2">
+          <span class="level-icon">🍀</span>
+          <span class="level-label">CE2</span>
+          <span class="level-desc">Consolidation</span>
+        </button>
+        <button class="level-btn level-cm1" data-level="CM1">
+          <span class="level-icon">🌳</span>
+          <span class="level-label">CM1</span>
+          <span class="level-desc">Approfondissement</span>
+        </button>
+        <button class="level-btn level-cm2" data-level="CM2">
+          <span class="level-icon">🎓</span>
+          <span class="level-label">CM2</span>
+          <span class="level-desc">Maîtrise</span>
         </button>
       </div>
     </div>
@@ -72,26 +81,29 @@ function renderDifficultySelect(container: HTMLElement): void {
 
   document.getElementById('btn-back-dict')?.addEventListener('click', () => navigate(''));
 
-  container.querySelectorAll('.difficulty-btn').forEach((btn) => {
+  container.querySelectorAll('.level-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const diff = btn.getAttribute('data-diff') as Difficulty;
-      startSession(container, diff);
+      const level = btn.getAttribute('data-level') as SchoolLevel;
+      startSession(container, level);
     });
   });
 }
 
-function startSession(container: HTMLElement, difficulty: Difficulty): void {
-  const sentence = getRandomSentence(difficulty, session?.completedIds ?? []);
+function startSession(container: HTMLElement, level: SchoolLevel): void {
+  const sentence = getRandomSentence(level, session?.completedIds ?? []);
   if (!sentence) {
     showNotification('Toutes les phrases ont été faites !', '🎉');
     renderDifficultySelect(container);
     return;
   }
 
+  // Persist last selected level
+  updateState((s) => { s.dictation.currentLevel = level; });
+
   const showMode = getShowMode();
 
   session = {
-    difficulty,
+    level,
     sentence: sentence.text,
     sentenceId: sentence.id,
     completedIds: session?.completedIds ?? [],
@@ -306,7 +318,7 @@ function renderExercise(container: HTMLElement): void {
   }
 
   document.getElementById('btn-next')?.addEventListener('click', () => {
-    startSession(container, session!.difficulty);
+    startSession(container, session!.level);
   });
 }
 
