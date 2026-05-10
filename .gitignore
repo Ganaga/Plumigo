@@ -10,3 +10,8 @@ dist/
 *.keystore.*
 plumigo.apk
 plumigo.aab
+
+# Gradle
+.gradle/
+build/
+app/build/
