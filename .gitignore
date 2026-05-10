@@ -5,6 +5,7 @@ dist/
 
 # APK build artifacts
 *.apk
+*.apk.idsig
 *.aab
 *.keystore
 *.keystore.*
