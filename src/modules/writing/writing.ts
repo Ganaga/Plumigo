@@ -40,6 +40,30 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+const CHEAT_MESSAGES = [
+  'Détective Plumigo a tout vu ! Tu répètes les mêmes mots !',
+  'Mes yeux tournent ! Ces mots se répètent trop !',
+  'Copier-coller repéré ! Écris ta propre histoire !',
+  'Hmm… ça ressemble beaucoup à du copier-coller !',
+  "J'ai compté les mots qui se répètent… tu triches !",
+];
+
+function detectRepetition(text: string): boolean {
+  const words = text.trim().toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  if (words.length < 20) return false;
+
+  const trigrams = new Map<string, number>();
+  for (let i = 0; i <= words.length - 3; i++) {
+    const key = `${words[i]} ${words[i + 1]} ${words[i + 2]}`;
+    trigrams.set(key, (trigrams.get(key) ?? 0) + 1);
+  }
+
+  for (const count of trigrams.values()) {
+    if (count >= 3) return true;
+  }
+  return false;
+}
+
 function renderStoryList(container: HTMLElement): void {
   const state = getState();
   const stories = state.writing.stories;
@@ -131,6 +155,7 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let lastWordCount = story.wordCount;
+  let lastCheatWarningWordCount = -1;
   let ttsEnabled = isTtsEnabled();
   let zeroFaultAwarded = false;
   let goalCelebratedToday = false;
@@ -500,6 +525,19 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     });
 
     wordCountEl.textContent = `${words} ${t.writing.words}`;
+
+    if (detectRepetition(text)) {
+      if (lastCheatWarningWordCount < 0 || words > lastCheatWarningWordCount + 10) {
+        lastCheatWarningWordCount = words;
+        const msg = CHEAT_MESSAGES[Math.floor(Math.random() * CHEAT_MESSAGES.length)]!;
+        showNotification(msg, '🕵️');
+      }
+      updateDailyProgress();
+      saveIndicatorEl.classList.add('visible');
+      setTimeout(() => saveIndicatorEl.classList.remove('visible'), 1500);
+      return;
+    }
+    lastCheatWarningWordCount = -1;
 
     if (words > lastWordCount) {
       const newWords = words - lastWordCount;
