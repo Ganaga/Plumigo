@@ -34,6 +34,28 @@ const SPELLING_CATEGORIES = new Set([
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let lastCheckedText = '';
+let ignoredWords = new Set<string>();
+
+export function setPersonalDictionary(words: string[]): void {
+  ignoredWords = new Set(words);
+}
+
+export function addToPersonalDictionary(word: string): void {
+  ignoredWords.add(word);
+}
+
+export function resetGrammarCache(): void {
+  lastCheckedText = '';
+}
+
+function filterPersonalDictionary(errors: GrammarError[], text: string): GrammarError[] {
+  if (ignoredWords.size === 0) return errors;
+  return errors.filter((err) => {
+    if (err.isGrammar) return true;
+    const word = text.slice(err.offset, err.offset + err.length);
+    return !ignoredWords.has(word);
+  });
+}
 
 export function checkGrammar(
   text: string,
@@ -71,15 +93,18 @@ export function checkGrammar(
 
       const data: LTResponse = await response.json();
 
-      const errors: GrammarError[] = data.matches.map((match) => ({
-        offset: match.offset,
-        length: match.length,
-        message: match.message,
-        shortMessage: match.shortMessage || match.message,
-        replacements: match.replacements.slice(0, 5).map((r) => r.value),
-        isGrammar: !SPELLING_CATEGORIES.has(match.rule.category.id),
-        ruleId: match.rule.id,
-      }));
+      const errors: GrammarError[] = filterPersonalDictionary(
+        data.matches.map((match) => ({
+          offset: match.offset,
+          length: match.length,
+          message: match.message,
+          shortMessage: match.shortMessage || match.message,
+          replacements: match.replacements.slice(0, 5).map((r) => r.value),
+          isGrammar: !SPELLING_CATEGORIES.has(match.rule.category.id),
+          ruleId: match.rule.id,
+        })),
+        trimmed,
+      );
 
       callback(errors);
     } catch (err) {
@@ -108,15 +133,18 @@ export async function checkGrammarImmediate(text: string): Promise<GrammarError[
 
   const data: LTResponse = await response.json();
 
-  return data.matches.map((match) => ({
-    offset: match.offset,
-    length: match.length,
-    message: match.message,
-    shortMessage: match.shortMessage || match.message,
-    replacements: match.replacements.slice(0, 5).map((r) => r.value),
-    isGrammar: !SPELLING_CATEGORIES.has(match.rule.category.id),
-    ruleId: match.rule.id,
-  }));
+  return filterPersonalDictionary(
+    data.matches.map((match) => ({
+      offset: match.offset,
+      length: match.length,
+      message: match.message,
+      shortMessage: match.shortMessage || match.message,
+      replacements: match.replacements.slice(0, 5).map((r) => r.value),
+      isGrammar: !SPELLING_CATEGORIES.has(match.rule.category.id),
+      ruleId: match.rule.id,
+    })),
+    trimmed,
+  );
 }
 
 export function cancelCheck(): void {

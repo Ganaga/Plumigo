@@ -21,6 +21,7 @@ import {
   setCursorPos,
 } from './editor';
 import type { GrammarError } from './grammar-checker';
+import { setPersonalDictionary, addToPersonalDictionary, resetGrammarCache } from './grammar-checker';
 import { startPomodoro, formatTime, type PomodoroController } from '../../shared/pomodoro';
 import { isBuiltInKeyboardEnabled } from '../../shared/keyboard';
 import '../../shared/keyboard';
@@ -125,6 +126,8 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     renderStoryList(container);
     return () => {};
   }
+
+  setPersonalDictionary(state.writing.personalDictionary);
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let lastWordCount = story.wordCount;
@@ -299,6 +302,13 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
     const popupTop = Math.min(rect.bottom + 8, window.innerHeight - 200);
     const popupLeft = Math.max(8, Math.min(rect.left, window.innerWidth - 300));
 
+    const text = getEditorText(editorEl);
+    const word = text.slice(error.offset, error.offset + error.length);
+    const firstChar = word[0] ?? '';
+    const startsWithUppercase = firstChar !== '' && firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase();
+    const showAddToDict = !error.isGrammar && startsWithUppercase;
+    const wordSafe = word.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
     popupContainer.innerHTML = `
       <div class="suggestion-popup ${errorClass}" style="top:${popupTop}px;left:${popupLeft}px;">
         <div class="suggestion-popup-header">
@@ -312,6 +322,11 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
           <div class="suggestion-label">${t.writing.spellSuggestions}</div>
           <div class="suggestion-list">
             ${error.replacements.map((s) => `<button class="suggestion-btn" data-suggestion="${s}">${s}</button>`).join('')}
+          </div>
+        ` : ''}
+        ${showAddToDict ? `
+          <div class="add-to-dict-section">
+            <button class="add-to-dict-btn" id="btn-add-to-dict">📖 Ajouter « ${wordSafe} » au dictionnaire</button>
           </div>
         ` : ''}
       </div>
@@ -336,6 +351,19 @@ function renderEditorView(container: HTMLElement, storyId: string): () => void {
         // Re-check after correction
         setTimeout(() => triggerCheck(editorEl), 300);
       });
+    });
+
+    document.getElementById('btn-add-to-dict')?.addEventListener('click', () => {
+      updateState((s) => {
+        if (!s.writing.personalDictionary.includes(word)) {
+          s.writing.personalDictionary.push(word);
+        }
+      });
+      addToPersonalDictionary(word);
+      popupContainer.innerHTML = '';
+      showNotification(`« ${word} » ajouté au dictionnaire`, '📖');
+      resetGrammarCache();
+      setTimeout(() => triggerCheck(editorEl), 100);
     });
 
     // Close popup when clicking outside

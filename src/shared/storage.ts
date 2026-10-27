@@ -31,6 +31,7 @@ function defaultState(name: string = ''): AppState {
       totalCorrections: 0,
       grammarCorrections: 0,
       bestCleanStreak: 0,
+      personalDictionary: [],
     },
     gamification: {
       totalPoints: 0,

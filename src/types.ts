@@ -25,6 +25,7 @@ export interface AppState {
     totalCorrections: number;
     grammarCorrections: number;
     bestCleanStreak: number;
+    personalDictionary: string[];
   };
   gamification: {
     totalPoints: number;
