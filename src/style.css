@@ -40,6 +40,77 @@
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
+[data-seasonal="halloween"] {
+  --primary: #d9600a;
+  --primary-light: #f97316;
+  --secondary: #7c3aed;
+  --secondary-light: #a78bfa;
+  --accent: #f97316;
+  --bg: #12001a;
+  --surface: #1e0030;
+  --border: #3d0060;
+  --text: #f3e8ff;
+  --text-muted: #c084fc;
+  --text-light: #a855f7;
+  --shadow: 0 2px 8px rgba(120, 0, 200, 0.3);
+  --shadow-lg: 0 8px 32px rgba(120, 0, 200, 0.5);
+}
+
+/* ── Seasonal splash overlay ───────────────────── */
+.seasonal-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: linear-gradient(160deg, #0d001a, #1e0030, #0d001a);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.seasonal-splash--out {
+  animation: fadeOut 0.5s ease-in forwards;
+}
+
+.seasonal-splash-icon {
+  font-size: 6rem;
+  animation: mascotBounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.seasonal-splash-title {
+  color: #f3e8ff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0.5rem 0 0;
+  animation: slideUp 0.5s 0.3s ease-out both;
+}
+
+.seasonal-splash-sub {
+  color: #c084fc;
+  font-size: 1rem;
+  margin: 0.3rem 0 0;
+  animation: slideUp 0.5s 0.5s ease-out both;
+}
+
+/* Animated bats */
+.bat {
+  position: absolute;
+  font-size: 2rem;
+  animation: batFly var(--dur, 4s) var(--delay, 0s) linear infinite;
+}
+
+@keyframes batFly {
+  from  { transform: translateX(-120px) translateY(var(--vy, 0px)); opacity: 0; }
+  10%   { opacity: 1; }
+  90%   { opacity: 1; }
+  to    { transform: translateX(calc(100vw + 120px)) translateY(var(--vy, 0px)); opacity: 0; }
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+
 *,
 *::before,
 *::after {
