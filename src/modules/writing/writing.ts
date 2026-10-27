@@ -49,8 +49,11 @@ const CHEAT_MESSAGES = [
 ];
 
 function detectRepetition(text: string): boolean {
-  const words = text.trim().toLowerCase().split(/\s+/).filter((w) => w.length > 2);
-  if (words.length < 20) return false;
+  const words = text.trim().toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.replace(/[.,!?;:«»"'…\-]/g, ''))
+    .filter((w) => w.length > 1);
+  if (words.length < 9) return false;
 
   const trigrams = new Map<string, number>();
   for (let i = 0; i <= words.length - 3; i++) {
